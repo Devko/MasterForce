@@ -186,8 +186,22 @@ display (MPC skins can't draw one).
    without a measurement, suspend, random settings: 289 checks on x86 (ASan/UBSan), under qemu-arm and
    against the profile-guided objects. x86 bench: under 2% of a block for everything at once (the
    Force's numbers come from `make bench-device`).
-4. 🔜 **On the device:** install, play, `make bench-device`; then the by-ear check of step 2 on real
-   beats, and the STYLE curves.
+4. **On the device:** ✅ installed (2026-10-24, the local profile-guided build; MPC.settings lists it as
+   an Effect, 2 in, 2 out). ✅ `make bench-device`, percent of the 2902 µs block on the Force:
+
+   | Case | avg | p99 | max |
+   |---|---|---|---|
+   | At rest: the limiter and the meters | 2.15 | 3.17 | 3.73 |
+   | LEARN measuring | 3.52 | 4.51 | 5.00 |
+   | Learned: tone, glue, gain into the clipper | 3.31 | 4.05 | 4.50 |
+   | Everything, while LEARN measures | 5.90 | 7.06 | 7.84 |
+
+   Every case passes, with room to spare in the 15% budget, but over the 4% this note first aimed at.
+   Most of it is the true peak: the limiter's detector and the meter's own, 144 multiply-adds a sample
+   each, and a third in the Learner's meter while LEARN measures. Cheaper, when it matters: the meter's
+   true peak from the limiter's detector and gain, the Learner's from sample peaks.
+   🔜 Played: MasterForce on Master Out 1/2, LEARN, the meters, an export; then the by-ear check of
+   step 2 on real beats, and the STYLE curves.
 
 ## Open
 
