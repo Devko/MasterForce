@@ -38,13 +38,17 @@ IN → Tone → Glue → Gain → Warmth → Width / mono bass → Clipper (2×)
 - **Without LEARN** it is the end of the chain: Tone flat, Glue off, Gain 0 dB, Warmth 0, the clipper
   off, the limiter at −1 dBTP. Below the ceiling it changes nothing: the output is the input 64 samples late,
   bit for bit (test/master_test.cpp).
-- **LEARN:** press it and the next 8 bars from the bar line are measured (the looper's grid). Play the
-  loudest section (the drop, the chorus). While it measures, the line shows `LEARN 3/8`. At the end it
-  sets the knobs and says what it did (`LEARNED: tilt +1.2 · glue 2.1 dB · +4.5 dB`). It refuses a
-  section too quiet to judge (gated loudness under −40 LUFS), a transport stopped halfway or a jump in
-  the song position (`LEARN: play 8 bars`). A second press while it measures cancels. A section so
-  quiet that the gain's +18 dB can't reach the target should say so too (`LEARNED: 3 dB short`): the
-  prototype ran into that case (a beat at −33 LUFS), and the page doesn't show it yet.
+- **LEARN:** press it and 8 bars are measured from the next bar line. Play the loudest section (the
+  drop, the chorus). It starts on a bar line: playing from a stop on one, the first moment past one,
+  or where a loop starts over (the song position falling back more than a beat). From there it counts
+  the 8 bars itself, from the tempo and the time played, not from the song position: a sequence or a
+  clip looping, a locate, or MPC's song position stepping unevenly from block to block don't disturb
+  it. The first device run (2026-10-24) said `LEARN STOPPED: THE SONG JUMPED`: 0.0.1 had failed on any
+  step back in the position or a step forward of more than half a beat, and on a Force the position
+  does both (a loop shorter than 8 bars; MPC's two audio workers taking turns). Now only stopping fails
+  it, and a section too quiet to judge (gated loudness under −40 LUFS). A second press while it measures
+  cancels. A section so quiet that the gain's +18 dB can't reach the target says so (LEARN's line,
+  below).
 - **What LEARN sets:** Tone (Tilt, Low, Air), Glue's threshold and makeup, and the input Gain. These
   are ordinary parameters, saved and automatable like any other, and nothing is hidden. Width, mono
   bass and the ceiling stay the user's.

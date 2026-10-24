@@ -6,7 +6,8 @@ namespace mf {
 
 namespace {
 
-constexpr double kJumpBeats = 0.5;   // the song position moving more than this in a chunk is a jump
+constexpr double kWrapBeats = 1.0;   // the song position falling back more than this: a loop starting over
+constexpr double kOnLineBeats = 0.01;   // playing from a stop this close to a bar line starts on it
 constexpr int kGlueWarmChunks = 96;  // 70 ms: the glue's detector settles (its attack is 30 ms) unheard
 constexpr float kGlueFadeStep = 1.0f / 16.0f;   // in and out over 16 chunks, 12 ms
 
@@ -136,38 +137,45 @@ void Master::set(const Params& p, const ef::Transport& t) {
     clip_.set(clipLevel_, gainDb > 0.0f);
     fresh_ = false;
 
-    // LEARN: armed, it waits for MPC to play and starts on the next bar line.
+    // LEARN: armed, it waits for MPC to play and starts on a bar line: playing from a stop on one, the
+    // first chunk past one, or where a loop starts over (the song position falling back more than a
+    // beat). From there it counts its 8 bars itself, from the tempo and the samples it measured: a
+    // sequence or clip looping, a locate, or MPC's song position stepping unevenly from block to block
+    // (its two audio workers take turns) don't disturb it. Only stopping does.
+    bpm_ = t.bpm;
     switch (learn_) {
-    case LearnState::Armed:
-        if (t.playing && t.valid) {
-            if (learnStart_ < 0.0) learnStart_ = std::ceil(t.beats / kBeatsPerBar - 1e-9) * kBeatsPerBar;
-            if (t.beats >= learnStart_) {
-                learner_.begin();
-                learn_ = LearnState::Measuring;
-                learnBars_ = 0.0;
-                lastBeats_ = t.beats;
-            }
+    case LearnState::Armed: {
+        if (!t.playing) {
+            haveLast_ = false;   // waits for play
+            break;
+        }
+        bool start = !t.valid;   // no song position: no grid to wait for
+        if (t.valid) {
+            const double bar = std::floor(t.beats / kBeatsPerBar), inBar = t.beats - bar * kBeatsPerBar;
+            if (!haveLast_) start = inBar < kOnLineBeats || inBar > kBeatsPerBar - kOnLineBeats;
+            else start = bar != std::floor(lastBeats_ / kBeatsPerBar) || t.beats < lastBeats_ - kWrapBeats;
+            lastBeats_ = t.beats;
+            haveLast_ = true;
+        }
+        if (start) {
+            learner_.begin();
+            learn_ = LearnState::Measuring;
+            learnBeats_ = 0.0;
         }
         break;
+    }
     case LearnState::Measuring:
-        if (!t.playing || !t.valid) {
+        if (!t.playing) {
             learn_ = LearnState::Failed;
             learnError_ = "stopped";
-        } else if (t.beats < lastBeats_ || t.beats - lastBeats_ > kJumpBeats) {
-            learn_ = LearnState::Failed;
-            learnError_ = "moved";
-        } else {
-            lastBeats_ = t.beats;
-            learnBars_ = (t.beats - learnStart_) / kBeatsPerBar;
-            if (learnBars_ >= kLearnBars) {
-                const Measurement m = learner_.finish();
-                if (m.valid) {
-                    measurement_ = m;
-                    learn_ = LearnState::Done;
-                } else {
-                    learn_ = LearnState::Failed;
-                    learnError_ = "too quiet";
-                }
+        } else if (learnBeats_ >= kLearnBars * kBeatsPerBar - 1e-9) {
+            const Measurement m = learner_.finish();
+            if (m.valid) {
+                measurement_ = m;
+                learn_ = LearnState::Done;
+            } else {
+                learn_ = LearnState::Failed;
+                learnError_ = "too quiet";
             }
         }
         break;
@@ -177,7 +185,10 @@ void Master::set(const Params& p, const ef::Transport& t) {
 }
 
 void Master::process(float* L, float* R, int n) {
-    if (learn_ == LearnState::Measuring) learner_.process(L, R, n);   // the input, as the user plays it
+    if (learn_ == LearnState::Measuring) {   // the input, as the user plays it, and the beats it lasts
+        learner_.process(L, R, n);
+        learnBeats_ += n * bpm_ / 60.0 / ef::kRate;
+    }
 
     tone_.process(L, R, n);
     if (glueOn_) glue_.process(L, R, n);
@@ -209,8 +220,8 @@ void Master::process(float* L, float* R, int n) {
 void Master::learn() {
     learner_.begin();
     learn_ = LearnState::Armed;
-    learnStart_ = -1.0;
-    learnBars_ = 0.0;
+    haveLast_ = false;
+    learnBeats_ = 0.0;
     learnError_ = "";
 }
 

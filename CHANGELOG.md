@@ -8,7 +8,9 @@ The first build: MasterForce as a VST2 insert for MPC's master on the Force.
   ceiling the master passes untouched, bit for bit.
 - LEARN: play the loudest 8 bars and it sets Tilt, Low, Air, Glue and Gain for a target (YouTube −14
   LUFS, Loud −10, Live) and a style (Warm, Neutral, Bright); TARGET, STYLE and AMOUNT re-derive them
-  without playing again, and the measurement is saved with the project.
+  without playing again, and the measurement is saved with the project. It counts its 8 bars from the
+  tempo and the time played, so a looping sequence or clip, a locate, or MPC's song position stepping
+  unevenly doesn't stop it (the first device run said "the song jumped"); only stopping does.
 - Warmth (tube saturation, level kept), width, mono bass, a 2x clipper before the limiter.
 - The meters on the top line: short-term and song loudness, true peak, gain reduction, CPU.
 - 15 factory presets in four categories; user presets, favorites, the browser.

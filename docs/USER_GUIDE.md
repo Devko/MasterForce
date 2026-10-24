@@ -29,14 +29,14 @@ below it the sound is untouched: bit for bit, 64 samples late. Leave it on while
    (no drive: tone and glue only, the limiter as a safety).
 2. Pick a **STYLE**: Warm, Neutral or Bright, the tone LEARN aims at.
 3. Press **LEARN** and play the **loudest part** of the song (the drop, the chorus). It starts on the
-   next bar line and listens for 8 bars; the line says `LEARNING: BAR 3 OF 8`.
+   next bar line (or where your loop starts over) and listens for 8 bars of playing time; the line
+   says `LEARNING: BAR 3 OF 8`. A loop shorter than 8 bars is fine: it simply hears it again.
 4. It sets Tilt, Low, Air, Glue and Gain and says what it did:
    `LEARNED   TILT +1.2   LOW -0.5   AIR +0.8   GLUE 2.0   GAIN +4.5`.
 
 Change TARGET, STYLE or AMOUNT afterwards and the knobs follow at once, from what it measured: no need
-to play again. The measurement is saved with the project. Stopping halfway, or a jump in the song,
-stops LEARN (`PRESS LEARN AGAIN`); a part too quiet to judge says so. A press while it listens
-cancels it.
+to play again. The measurement is saved with the project. Stopping halfway stops LEARN (`PRESS
+LEARN AGAIN`); a part too quiet to judge says so. A press while it listens cancels it.
 
 ## The knobs
 

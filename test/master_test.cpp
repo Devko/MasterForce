@@ -58,8 +58,8 @@ void masterTests() {
         CHECK(me.valid);
         CHECK(std::fabs(me.loudness - sectionLufs(inL, inR, bar, 9 * bar)) < 0.3);
     }
-    {   // It fails if MPC stops while it measures, or the song position jumps; and it won't learn
-        // silence. Armed while stopped, it waits for play.
+    {   // It fails if MPC stops while it measures, and it won't learn silence. Armed while stopped, it
+        // waits for play.
         Master m;
         Buf L, R;
         beat(L, R, static_cast<int>(6 * bar), 0.3f);
@@ -69,14 +69,6 @@ void masterTests() {
             if (i >= 3 * bar) t.playing = false;
         });
         CHECK(m.learnState() == Master::LearnState::Failed && std::string(m.learnError()) == "stopped");
-
-        Master j;
-        beat(L, R, static_cast<int>(6 * bar), 0.3f);
-        runMaster(j, L, R, p, bpm, [&](size_t i, ef::Transport& t, Master::Params&) {
-            if (i == 0) j.learn();
-            if (i >= 3 * bar) t.beats += 16.0;
-        });
-        CHECK(j.learnState() == Master::LearnState::Failed && std::string(j.learnError()) == "moved");
 
         Master q;
         Buf zL(10 * bar, 0.0f), zR = zL;
@@ -92,6 +84,33 @@ void masterTests() {
             t.playing = false;
         });
         CHECK(w.learnState() == Master::LearnState::Armed);
+    }
+    {   // What a Force does to the song position doesn't stop it (the first device run: "the song
+        // jumped"): a locate, a 1-bar loop with LEARN pressed in the middle of the bar (it starts where
+        // the loop starts over), and a position that steps back a block every other block (MPC's two
+        // audio workers taking turns). Each counts 8 bars of playing time and is done, not sooner.
+        Master::Params p;
+        const size_t block = 128;
+        const double beatsPerBlock = block * bpm / 60.0 / ef::kRate;
+        for (int how = 0; how < 3; ++how) {
+            Master m;
+            Buf L, R;
+            beat(L, R, static_cast<int>(10 * bar), 0.3f);
+            size_t started = 0, done = 0;
+            Master::LearnState was = Master::LearnState::Idle;
+            runMaster(m, L, R, p, bpm, [&](size_t i, ef::Transport& t, Master::Params&) {
+                if (how == 0 && i >= 3 * bar) t.beats += 16.0;                        // a locate
+                if (how == 1) t.beats = std::fmod(t.beats + 2.0, 4.0);               // a 1-bar loop, from mid-bar
+                if (how == 2 && (i / block) % 2 == 1) t.beats -= beatsPerBlock;      // stepping back a block
+                if (i == 0) m.learn();
+                if (was != Master::LearnState::Measuring && m.learnState() == Master::LearnState::Measuring) started = i;
+                if (was == Master::LearnState::Measuring && m.learnState() == Master::LearnState::Done) done = i;
+                was = m.learnState();
+            });
+            CHECK(m.learnState() == Master::LearnState::Done);
+            CHECK(done > started && std::fabs(static_cast<double>(done - started) - 8.0 * bar) < 64.0);
+            if (how == 1) CHECK(std::fabs(static_cast<double>(started) - 0.5 * bar) < 64.0);   // where the loop started over
+        }
     }
     {   // The whole flow, as the prototype runs it: LEARN on bars 2-9, derive, the song through the
         // chain. The section comes out near its aim, the song's true peak under the ceiling.

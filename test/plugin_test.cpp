@@ -249,6 +249,25 @@ void testLearnFails() {
     }
 }
 
+void testLearnOnAForce() {
+    std::printf("== LEARN on a Force: a 4-bar loop, the position stepping back every other block\n");
+    Host h;
+    Buf L, R;
+    beatBars(L, R, 9, 0.3f);
+    h.press(P_LEARN);
+    h.play(true);
+    const double beatsPerBlock = kBlock * 120.0 / 60.0 / 44100.0;
+    for (size_t pos = 0, b = 0; pos + kBlock <= L.size(); pos += kBlock, ++b) {
+        h.run(Buf(L.begin() + static_cast<long>(pos), L.begin() + static_cast<long>(pos + kBlock)),
+              Buf(R.begin() + static_cast<long>(pos), R.begin() + static_cast<long>(pos + kBlock)));
+        if (b % 2 == 1) h.log.time.ppqPos -= beatsPerBlock;           // a stale position from the other worker
+        if (h.log.time.ppqPos >= 16.0) h.log.time.ppqPos -= 16.0;    // the sequence loops every 4 bars
+    }
+    h.get(P_STATUS);
+    CHECK(starts(h.display(P_LEARN_INFO), "LEARNED"));
+    CHECK(h.value(P_GAIN) > 3.0f);
+}
+
 void testMeters() {
     std::printf("== the meters' line\n");
     Host h;
@@ -373,6 +392,7 @@ int main() {
     testPassThrough();
     testLearn();
     testLearnFails();
+    testLearnOnAForce();
     testMeters();
     testLearnedSound();
     testSuspend();

@@ -8,10 +8,10 @@
 // Gain 0 dB, Warmth 0, width 1 without mono bass, the clipper off while nothing drives it), and the
 // limiter below its ceiling is a delay: by default the chain is the end of the chain and nothing more.
 //
-// LEARN: learn() arms it; it starts measuring on the next bar line while MPC plays and measures the
-// input for kLearnBars bars. Then measurement() holds what it found: the caller (the plugin's UI
-// thread; the prototype) derives settings from it (dsp/learn.h) and sets them as parameters. Stopping
-// or a jump in the song position fails it. The audio thread never sets a parameter.
+// LEARN: learn() arms it; it starts measuring on a bar line while MPC plays and measures the input
+// for kLearnBars bars of playing time (loops and locates don't matter). Then measurement() holds what
+// it found: the caller (the plugin's UI thread; the prototype) derives settings from it (dsp/learn.h)
+// and sets them as parameters. Stopping fails it. The audio thread never sets a parameter.
 //
 // Per chunk, as EffectForce's modules: set() with MPC's transport, then process() of at most kChunk
 // samples in place.
@@ -53,7 +53,7 @@ public:
     void learn();
     void cancelLearn();
     LearnState learnState() const { return learn_; }
-    double learnBars() const { return learnBars_; }         // measured so far
+    double learnBars() const { return learnBeats_ / kBeatsPerBar; }   // measured so far
     const char* learnError() const { return learnError_; }
     const Measurement& measurement() const { return measurement_; }
 
@@ -85,7 +85,9 @@ private:
 
     Learner learner_;
     LearnState learn_ = LearnState::Idle;
-    double learnStart_ = 0.0, lastBeats_ = 0.0, learnBars_ = 0.0;
+    double learnBeats_ = 0.0;                  // measured so far, counted from the tempo
+    double lastBeats_ = 0.0, bpm_ = 120.0;     // the song position a chunk ago (armed); the tempo now
+    bool haveLast_ = false;
     const char* learnError_ = "";
     Measurement measurement_;
     bool fresh_ = true;

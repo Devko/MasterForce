@@ -163,7 +163,6 @@ std::string learnText(const Plugin* p) {
         case Master::LearnState::Failed: {
             const std::string why = m.learnError;
             if (why == "stopped") return "LEARN STOPPED: PLAY THE 8 BARS THROUGH, THEN PRESS LEARN AGAIN";
-            if (why == "moved") return "LEARN STOPPED: THE SONG JUMPED. PRESS LEARN AGAIN";
             if (why == "too quiet") return "LEARN: TOO QUIET TO JUDGE. PLAY THE LOUDEST PART";
             return "LEARN STOPPED";
         }
