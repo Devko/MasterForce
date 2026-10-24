@@ -48,8 +48,16 @@ IN → Tone → Glue → Gain → Warmth → Width / mono bass → Clipper (2×)
 - **What LEARN sets:** Tone (Tilt, Low, Air), Glue's threshold and makeup, and the input Gain. These
   are ordinary parameters, saved and automatable like any other, and nothing is hidden. Width, mono
   bass and the ceiling stay the user's.
-- **The measurement is kept** (one state line), so changing TARGET, STYLE or AMOUNT applies again at
-  once without playing again. A learned knob turned by hand keeps its value until then.
+- **The measurement is kept** (one state line), so changing TARGET, STYLE, AMOUNT or CEILING applies
+  again at once without playing again. A learned knob turned by hand keeps its value until then.
+- **A preset says how to master, the measurement is the song's.** Presets hold TARGET, STYLE, AMOUNT,
+  LOUDNESS, WARMTH, WIDTH, MONO BASS and CEILING, never the measurement or the knobs LEARN sets
+  (surface.py refuses a factory preset that names them; SAVE leaves them out). Loading one after a
+  LEARN keeps the measurement and derives the learned knobs again for the preset's choices, so
+  browsing presets on a learned song is browsing masters of that song.
+- **GLUE without a measurement** (turned by hand before any LEARN): the threshold assumes the glue
+  detector of a mix arriving at the master, near −12 dBFS, so GLUE's dB still mean about that much
+  reduction.
 - **TARGET:** YouTube (−14 LUFS) · Loud (−10) · Live (no drive: LEARN sets Tone and Glue only, and the
   limiter is a safety). The learned section is aimed **1.5 dB above** the target, because a song's
   quieter parts bring its integrated loudness down by about that much. YouTube turns louder uploads
@@ -59,13 +67,25 @@ IN → Tone → Glue → Gain → Warmth → Width / mono bass → Clipper (2×)
   with no saturation (or Bright with some) are both fair choices.
 - **AMOUNT** 0–100%: how far Tone and Glue go toward it. **LOUDNESS** ±6 dB: a trim on the gain.
 - **WARMTH** 0–100%: saturation (below). Off by default.
-- **One page.** Q-Links: AMOUNT, LOUDNESS, TILT, LOW, AIR, GLUE, WIDTH, CEILING. Buttons: LEARN, TARGET,
-  STYLE, MONO BASS (Off · 80 · 120 · 160 Hz).
-- **Meters are text**, updated as EffectForce's CPU readout and scenes' line are
-  (`surface.textsChanged()`): `-13.9 LUFS · song -14.2 · TP -1.0 · GR 2.3`. That is short-term (3 s),
-  the song (integrated and gated, since play started), the highest true peak since play started, and
-  the gain reduction now (clipper and limiter). Below it: `Meters read before the master fader: export
-  at 0 dB`.
+- **Two pages, two tabs.** MASTER: the top card LEARN, TARGET, STYLE, AMOUNT, LOUDNESS, WARMTH and
+  LEARN's line; the bottom card TILT, LOW, AIR, GLUE, GAIN, WIDTH, MONO BASS (Off · 80 · 120 · 160 Hz)
+  and CEILING. PRESETS: EffectForce's browser. Q-Links: the first bank the knobs turned most (AMOUNT,
+  LOUDNESS, WARMTH, TILT, LOW, AIR, GLUE, CEILING), the second GAIN, WIDTH, MONO BASS, TARGET, STYLE
+  and the preset.
+- **Meters are text**, the status line's, told to MPC at most four times a second when what they show
+  changes: `-13.9 LUFS   SONG -14.2   PEAK -1.0   GR 2.3   CPU 4%`. That is short-term (3 s), the song
+  (integrated and gated, since MPC started playing), the highest true peak since then, the deepest gain
+  reduction of the last quarter second (clipper and limiter), and the CPU. They read before the
+  master fader (the user guide says to export at 0 dB).
+- **LEARN's line** says what it is doing (`LEARN: IT STARTS ON THE NEXT BAR WHILE MPC PLAYS`,
+  `LEARNING: BAR 3 OF 8`), why it stopped (`LEARN STOPPED: ...`, `LEARN: TOO QUIET TO JUDGE ...`), or what
+  it set (`LEARNED   TILT +1.2   LOW -0.5   AIR +0.8   GLUE 2.0   GAIN +4.5`, and `(3.0 DB SHORT OF THE
+  TARGET: TOO QUIET)` when the gain's +18 dB couldn't reach it).
+- **Threads:** the audio thread measures and leaves the measurement in a two-slot mailbox
+  (plugin/engine.h); the next call MPC makes on its UI side (it polls the getters several times a
+  second even with the screen closed) takes it up and sets the knobs as one batch, as a preset load
+  does. The glue's threshold reaches the engine as an atomic, not as a parameter (it would show in
+  MPC's automation lists).
 
 ## DSP
 
@@ -159,8 +179,15 @@ display (MPC skins can't draw one).
 2. **By ear:** a few of the user's beats, mastered by the prototype and by AIR Maximizer set by hand,
    uploaded unlisted to YouTube and listened to on a phone and a laptop. STYLE's three curves get tuned
    here.
-3. **The plugin:** the siblings' groundwork brought here (surface.py, the plugin glue, release.py, the
-   catalog check). One page, then the bench on the device.
+3. ✅ **The plugin** (2026-10-24): EffectForce's plugin layer cut down to one chain (surface.py, the
+   VST2 glue, the surface's stepping and browser, state, presets, the skin and its polish, the
+   installer, CI). The suite drives it through its VST2 entry points as MPC does: at rest bit for bit,
+   a LEARN through MPC's transport, the knobs pushed to MPC, the project and the presets with and
+   without a measurement, suspend, random settings: 289 checks on x86 (ASan/UBSan), under qemu-arm and
+   against the profile-guided objects. x86 bench: under 2% of a block for everything at once (the
+   Force's numbers come from `make bench-device`).
+4. 🔜 **On the device:** install, play, `make bench-device`; then the by-ear check of step 2 on real
+   beats, and the STYLE curves.
 
 ## Open
 

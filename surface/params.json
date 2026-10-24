@@ -1,0 +1,645 @@
+{
+ "name": "MasterForce",
+ "params": [
+  {
+   "key": "status",
+   "name": "Status",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "target",
+   "name": "Target",
+   "options": [
+    "YouTube",
+    "Loud",
+    "Live"
+   ],
+   "default": "YouTube"
+  },
+  {
+   "key": "style",
+   "name": "Style",
+   "options": [
+    "Warm",
+    "Neutral",
+    "Bright"
+   ],
+   "default": "Neutral"
+  },
+  {
+   "key": "amount",
+   "name": "Amount",
+   "min": 0,
+   "max": 1,
+   "default": 1.0,
+   "display": "string"
+  },
+  {
+   "key": "loudness",
+   "name": "Loudness",
+   "min": 0,
+   "max": 1,
+   "default": 0.5,
+   "display": "string"
+  },
+  {
+   "key": "warmth",
+   "name": "Warmth",
+   "min": 0,
+   "max": 1,
+   "default": 0.0,
+   "display": "string"
+  },
+  {
+   "key": "tilt",
+   "name": "Tilt",
+   "min": 0,
+   "max": 1,
+   "default": 0.5,
+   "display": "string"
+  },
+  {
+   "key": "low",
+   "name": "Low",
+   "min": 0,
+   "max": 1,
+   "default": 0.5,
+   "display": "string"
+  },
+  {
+   "key": "air",
+   "name": "Air",
+   "min": 0,
+   "max": 1,
+   "default": 0.5,
+   "display": "string"
+  },
+  {
+   "key": "glue",
+   "name": "Glue",
+   "min": 0,
+   "max": 1,
+   "default": 0.0,
+   "display": "string"
+  },
+  {
+   "key": "gain",
+   "name": "Gain",
+   "min": 0,
+   "max": 1,
+   "default": 0.4,
+   "display": "string"
+  },
+  {
+   "key": "width",
+   "name": "Width",
+   "min": 0,
+   "max": 1,
+   "default": 0.666667,
+   "display": "string"
+  },
+  {
+   "key": "mono",
+   "name": "Mono Bass",
+   "options": [
+    "Off",
+    "80 Hz",
+    "120 Hz",
+    "160 Hz"
+   ],
+   "default": "Off"
+  },
+  {
+   "key": "ceiling",
+   "name": "Ceiling",
+   "min": 0,
+   "max": 1,
+   "default": 0.833333,
+   "display": "string"
+  },
+  {
+   "key": "learn",
+   "name": "Learn",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "learn_info",
+   "name": "Learn Info",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "preset",
+   "name": "Preset",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "stepper"
+  },
+  {
+   "key": "preset_prev",
+   "name": "Preset Prev",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "preset_next",
+   "name": "Preset Next",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "pre_save",
+   "name": "Save Preset",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "pre_init",
+   "name": "Init Preset",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "cat_1",
+   "name": "Category 1",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_2",
+   "name": "Category 2",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_3",
+   "name": "Category 3",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_4",
+   "name": "Category 4",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_5",
+   "name": "Category 5",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_6",
+   "name": "Category 6",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_7",
+   "name": "Category 7",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_8",
+   "name": "Category 8",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_9",
+   "name": "Category 9",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_10",
+   "name": "Category 10",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_11",
+   "name": "Category 11",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_12",
+   "name": "Category 12",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_13",
+   "name": "Category 13",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_14",
+   "name": "Category 14",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_15",
+   "name": "Category 15",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_16",
+   "name": "Category 16",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "cat_prev",
+   "name": "Categories Prev",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "cat_next",
+   "name": "Categories Next",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "item_1",
+   "name": "Item 1",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_2",
+   "name": "Item 2",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_3",
+   "name": "Item 3",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_4",
+   "name": "Item 4",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_5",
+   "name": "Item 5",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_6",
+   "name": "Item 6",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_7",
+   "name": "Item 7",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_8",
+   "name": "Item 8",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_9",
+   "name": "Item 9",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_10",
+   "name": "Item 10",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_11",
+   "name": "Item 11",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_12",
+   "name": "Item 12",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_13",
+   "name": "Item 13",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_14",
+   "name": "Item 14",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_15",
+   "name": "Item 15",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_16",
+   "name": "Item 16",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_17",
+   "name": "Item 17",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_18",
+   "name": "Item 18",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_19",
+   "name": "Item 19",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_20",
+   "name": "Item 20",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_21",
+   "name": "Item 21",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_22",
+   "name": "Item 22",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_23",
+   "name": "Item 23",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_24",
+   "name": "Item 24",
+   "options": [
+    "-",
+    "On"
+   ],
+   "default": "-",
+   "display": "string"
+  },
+  {
+   "key": "item_prev",
+   "name": "Items Prev",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "item_next",
+   "name": "Items Next",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  },
+  {
+   "key": "item_page",
+   "name": "Items Page",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "br_now",
+   "name": "Loaded",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "fav",
+   "name": "Favorite",
+   "options": [
+    "Off",
+    "On"
+   ],
+   "default": "Off"
+  },
+  {
+   "key": "rnd",
+   "name": "Random Pick",
+   "min": 0,
+   "max": 1,
+   "momentary": true,
+   "type": "trigger"
+  }
+ ]
+}
