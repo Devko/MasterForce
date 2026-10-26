@@ -7,6 +7,10 @@
 # regular release, which the catalog lists with a download; a tag with a suffix (v0.1.0-beta) publishes a
 # prerelease: the catalog's beta channel, hidden unless a visitor asks for betas. The plugin's version is the
 # tag without the suffix (X.Y.Z only), as PolyForce's.
+#
+# Only the release job may write, and it runs nothing from the repository but an awk over CHANGELOG.md: the builds
+# (the repo's own make, in a container) run read-only, and no job keeps the checkout's token in .git/config. The
+# actions are pinned by commit (the comment: the release it is) and the image by digest; a bump is a deliberate edit.
 name: build
 
 on:
@@ -23,55 +27,75 @@ jobs:
     name: Test suite (x86, ASan/UBSan)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
+        with:
+          persist-credentials: false
       - run: make test
 
   device:
     name: Device build (armhf, glibc 2.31, PGO), package, catalog check
     needs: test   # a tag on a commit whose sanitizer suite fails publishes nothing
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write   # the release, on a tag
     steps:
-      - uses: actions/checkout@v4
-      # What doesn't depend on the CPU is built here, natively: the generated sources and the skin. The ARM
-      # container then needs nothing beyond its own compiler (bullseye's package mirrors are going to the archive).
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
+        with:
+          persist-credentials: false
+      # What doesn't depend on the CPU is built here, natively: the generated sources and the skin (which checks
+      # skin_polish.py with its selftest first). The ARM container then needs nothing beyond its own compiler
+      # (bullseye's package mirrors are going to the archive).
       - name: Generated sources and skin
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends python3-pil
           make surface skin
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130   # v3.7.0
         with:
           platforms: arm
       - name: Device build and the suite on ARM, in arm32v7/gcc:11-bullseye
         run: >-
-          docker run --rm --platform linux/arm/v7 -v "$PWD:/w" -w /w arm32v7/gcc:11-bullseye
+          docker run --rm --platform linux/arm/v7 -v "$PWD:/w" -w /w
+          arm32v7/gcc:11-bullseye@sha256:57ff24cb35a4189bb4eca8fa3af1331b39da8ff132d6fda082da669b11b8fd26
           make ARM_PREFIX= ARM_RUN= PGO=1 arm-plugin test-arm-pgo
+      # -o: the .so above is the one to ship. Here, outside the container, its build stamp (the compiler and its
+      # version) differs, and a rebuild would fail anyway (no ARM compiler).
       - name: Package
         run: |
           case "$GITHUB_REF" in refs/tags/v*) v="${GITHUB_REF_NAME#v}"; version="PLUGIN_VERSION=${v%%-*}" ;; *) version= ;; esac
-          make PGO=1 $version plugin-package   # the .so above is up to date; a rebuild here would fail loudly (no ARM compiler)
+          make $version -o build/arm/masterforce.so plugin-package
       - name: Catalog check
         run: >-
           python3 third_party/mpc-vst-plugins/tools/catalog_check.py dist/*-mpc-armv7.zip
           --catalog --expect-id masterforce --expect-repo Devko/MasterForce
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02   # v4.6.2
         with:
           name: MasterForce-mpc-armv7
           path: dist/*-mpc-armv7.zip
           if-no-files-found: error
+
+  release:
+    name: GitHub release (a vX.Y.Z tag)
+    needs: [test, device]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093   # v4.3.0
+        with:
+          name: MasterForce-mpc-armv7
+          path: dist
       # The release's notes are CHANGELOG.md's section for the tag's version ("## X.Y.Z"): the catalog shows
       # them. A tag without a section fails here, before anything is published. (SubForce's.)
       - name: Release notes
-        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           v="${GITHUB_REF_NAME#v}"; v="${v%%-*}"
           awk -v v="$v" '/^## /{p = ($2 == v); next} p' CHANGELOG.md > release-notes.md
           grep -q '[^[:space:]]' release-notes.md || { echo "CHANGELOG.md has no section '## $v'"; exit 1; }
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65   # v2.6.2
         with:
           files: dist/*-mpc-armv7.zip
           prerelease: ${{ contains(github.ref_name, '-') }}

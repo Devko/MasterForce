@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""MasterForce skin polish (PolyForce's, unchanged: the meters part is unused here): redraws, after sd88me's generator (gen_vst.py) has written the skin, the images its C
+"""MasterForce skin polish (PolyForce's: the meters and the sub-pages are unused here, and the selftest checks what the
+layout has): redraws, after sd88me's generator (gen_vst.py) has written the skin, the images its C
 renderer can't draw the way the design wants. `make skin` runs it right after gen_vst.py:
 
     skin_polish.py "<skin folder>/Plugin Skins" --layout surface/layout.conf --style surface/build/skin_style.json
@@ -488,9 +489,19 @@ def selftest(samples=None):
         print(polish(skin, lay, sty))
         grouped = [(gi, si) for gi, g in enumerate(style["tab_groups"]) for si in range(len(g["pages"]))]
         check(numbering(skin) == (grouped, [grouped, grouped]), "tabs and Q-Link sets are not numbered by page group")
-        check(any(si for _, si in grouped) and len(style["tab_groups"]) <= 7, "the groups have no sub-pages, or too many")
+        check(len(style["tab_groups"]) <= 7, "more than seven page groups")
         polish(skin, lay, sty)   # a skin grouped already stays as it is
         check(numbering(skin) == (grouped, [grouped, grouped]), "polishing twice changed the grouping")
+        if len(sk.tabs) > 1 and not any(si for _, si in grouped):
+            # No group of this layout has sub-pages, so the generator's numbering is already the groups': the
+            # renumbering is checked with every page in one group instead.
+            one = os.path.join(tmp, "skin_style_one_group.json")
+            json.dump(dict(style, tab_groups=[{"name": "ALL", "pages": [t["name"] for t in sk.tabs]}]), open(one, "w"))
+            folder = os.path.join(tmp, "one_group", "Plugin Skins")
+            fabricate(folder)
+            polish(folder, lay, one)
+            sub = [(0, si) for si in range(len(sk.tabs))]
+            check(numbering(folder) == (sub, [sub, sub]), "pages of one group are not numbered as its sub-pages")
         for n, size in sizes.items():
             with Image.open(os.path.join(skin, n)) as im:
                 check(im.size == size, "%s changed size" % n)
@@ -546,8 +557,7 @@ def selftest(samples=None):
                 back, front = (h - 1 - back[0], back[1]), (h - 1 - front[0], front[1])
             check(im.getpixel(back) == glyph and im.getpixel(front) == line, "%s: points the wrong way" % n)
 
-        check(len(sk.meters) >= 1, "the layout has no wave view meters")
-        for mw, mh in sk.meters:
+        for mw, mh in sk.meters:   # none in MasterForce's layout: checked if one comes back
             sq, fr_n = max(mw, mh), style["frames"]
             strip = Image.open(os.path.join(skin, meter_name(mw, mh))).convert("RGBA")
             x0, y0 = (sq - mw) // 2, (sq - mh) // 2
@@ -566,7 +576,10 @@ def selftest(samples=None):
             check(px(fr_n - 1, x0, mid - mh // 4)[:3] == rgb(pal["lcd"]), "meter %dx%d: no display colour beside the bar" % (mw, mh))
 
         # refusals: each leaves every file untouched
+        refusals = []
+
         def refused(desc, mutate, needle):
+            refusals.append(desc)
             folder = os.path.join(tmp, desc.replace(" ", "_"), "Plugin Skins")
             fabricate(folder)
             mutate(folder)
@@ -582,9 +595,11 @@ def selftest(samples=None):
                         check(im.getpixel((0, 0)) == dummy, "%s: %s was written although refused" % (desc, f))
         some_btn = sorted(sk.buttons)[0] + "_on.png"
         some_arrow = sorted(sk.arrows)[0]
+        some_r = sorted(sk.knobs)[0]
+        some_s = 2 * some_r + 10
         refused("missing button", lambda f: os.remove(os.path.join(f, some_btn)), some_btn + ": missing")
-        refused("wrong knob size", lambda f: Image.new("RGB", (70, 70 * 127), dummy).save(os.path.join(f, "sh_knob_r30.png")),
-                "sh_knob_r30.png: is 70x8890")
+        refused("wrong knob size", lambda f: Image.new("RGB", (some_s, some_s * 127), dummy).save(
+            os.path.join(f, "sh_knob_r%d.png" % some_r)), "sh_knob_r%d.png: is %dx%d" % (some_r, some_s, some_s * 127))
         refused("wrong arrow size", lambda f: Image.new("RGB", (40, 41), dummy).save(os.path.join(f, some_arrow)),
                 some_arrow + ": is 40x41")
         refused("unknown button", lambda f: Image.new("RGB", (60, 52), dummy).save(os.path.join(f, "sh_btn_zz_ZZ_on.png")),
@@ -600,9 +615,10 @@ def selftest(samples=None):
             t = json.load(open(path))
             change(t["pageData"]["tabs"])
             json.dump(t, open(path, "w"))
-        refused("pages out of order", lambda f: edit_tabs(f, lambda ts: ts.insert(0, ts.pop(1))), "the page groups list")
-        refused("odd numbering", lambda f: edit_tabs(f, lambda ts: ts[1].update(fnKeySubIndex=3)),
-                "neither the generator's numbering nor the groups'")
+        if len(sk.tabs) > 1:
+            refused("pages out of order", lambda f: edit_tabs(f, lambda ts: ts.insert(0, ts.pop(1))), "the page groups list")
+            refused("odd numbering", lambda f: edit_tabs(f, lambda ts: ts[1].update(fnKeySubIndex=3)),
+                    "neither the generator's numbering nor the groups'")
         try:
             polish(os.path.join(tmp, "nowhere"), lay, sty)
             fails.append("a missing skin folder was accepted")
@@ -615,8 +631,8 @@ def selftest(samples=None):
         shutil.rmtree(tmp, ignore_errors=True)
     if fails:
         raise PolishError("selftest FAILED:\n  " + "\n  ".join(fails))
-    return "skin polish selftest: ok (%d knob radii, %d buttons, %d arrows, %d meter strips, %d pages, 9 refusals)" % (
-        len(sk.knobs), len(sk.buttons), len(sk.arrows), len(sk.meters), len(sk.tabs))
+    return "skin polish selftest: ok (%d knob radii, %d buttons, %d arrows, %d meter strips, %d pages, %d refusals)" % (
+        len(sk.knobs), len(sk.buttons), len(sk.arrows), len(sk.meters), len(sk.tabs), len(refusals))
 
 
 def write_samples(out, sk, style, skin):

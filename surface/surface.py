@@ -4,7 +4,8 @@
 Writes, next to this file:
   params.json        ordered VST parameter list (index = position; append-only once released:
                      MPC projects store values by index)
-  params.lock        the keys in that order, one per line (check_lock): a key that moves fails here
+  params.lock        the keys in that order, one per line (locks()): a key that moves fails here
+  params.values.lock what a value of each means (curve, range, options): one that changes fails here
   layout.conf        the skin (shadow_page.conf syntax, see
                      third_party/mpc-vst-plugins/tools/shadow_skin.py); coords are 1280x800
                      Force-Shadow pixels, the plugin area is y = 86..714
@@ -970,34 +971,48 @@ constexpr int kNumFactoryPresets = %d;
 """ % (rows, len(presets))
 
 
-def check_lock(keys):
-    """params.lock: the parameter keys in index order, one per line, the file sd88me's gen_vst.py writes since
-    2026-10-21 (their #488), so a later copy of it reads ours as its own. MPC projects, automation lanes and Q-Link
-    maps store parameters by index: a locked key that moves (one inserted mid-list, a reorder) stops the build, a key
-    removed from the end only warns (its index stays taken). GEN_VST_RELOCK=1 accepts a deliberate break.
-    Returns the file's new text, or None when it is current."""
-    path = os.path.join(HERE, "params.lock")
+def check_lock(name, rows, line, parse, why):
+    """surface/<name>: one line per parameter in index order (line(row); parse(line) reads one back), checked against
+    rows: a locked row that changes stops the build with why, a parameter removed from the end only warns (its index
+    stays taken). GEN_VST_RELOCK=1 accepts a deliberate break. Returns the file's new text, or None when it is current."""
+    path = os.path.join(HERE, name)
     if os.path.exists(path) and os.environ.get("GEN_VST_RELOCK") != "1":
-        with open(path) as f:
-            locked = f.read().split()
-        for i, k in enumerate(locked):
-            if i >= len(keys):
-                print("warning: params.lock: %d locked key(s) from %r on are gone (removed from the end)"
-                      % (len(locked) - i, k), file=sys.stderr)
+        with open(path, encoding="utf-8") as f:
+            locked = [parse(t) for t in f.read().splitlines() if t.strip()]
+        for i, was in enumerate(locked):
+            if i >= len(rows):
+                print("warning: %s: %d locked parameter(s) from %s on are gone (removed from the end)"
+                      % (name, len(locked) - i, line(was)), file=sys.stderr)
                 return None
-            if keys[i] != k:
-                raise SystemExit("params.lock: parameter %d was %r and is now %r. MPC projects, automation and Q-Link "
-                                 "maps store parameters by index: append new ones at the end, never insert or reorder "
-                                 "(GEN_VST_RELOCK=1 accepts the break)" % (i, k, keys[i]))
-        if len(keys) == len(locked):
+            if rows[i] != was:
+                raise SystemExit("%s: parameter %d was %s and is now %s. %s (GEN_VST_RELOCK=1 accepts the break)"
+                                 % (name, i, line(was), line(rows[i]), why))
+        if len(rows) == len(locked):
             return None
-    return "".join(k + "\n" for k in keys)
+    return "".join(line(r) + "\n" for r in rows)
+
+
+def locks():
+    """[(file, its new text or None)]. params.lock: the keys, the file sd88me's gen_vst.py writes since 2026-10-21
+    (their #488), so a later copy of it reads ours as its own (it splits the file on whitespace: keys only). MPC
+    projects, automation lanes and Q-Link maps store parameters by index. params.values.lock: what a value of each
+    means, [key, curve, lo, hi(, options)]. Automation and Q-Link maps store MPC's 0..1 value, which the curve and
+    range, or the options in order, turn into the real one; states and presets store an option by its name. A wider
+    range, another curve, an option added, moved or renamed: every saved value means something else."""
+    return [("params.lock", check_lock("params.lock", [p["key"] for p in P], str, str.strip,
+                                       "MPC projects, automation and Q-Link maps store parameters by index: append new "
+                                       "ones at the end, never insert or reorder")),
+            ("params.values.lock", check_lock(
+                "params.values.lock", [[p["key"], p["curve"], p["lo"], p["hi"]] + ([list(p["options"])] if "options" in p
+                                                                                  else []) for p in P], json.dumps, json.loads,
+                "Automation and Q-Link maps store a 0..1 value, states and presets an option's name: a new range, curve "
+                "or option list changes what every saved one means. Add a parameter at the end instead"))]
 
 
 def main():
     keys = [p["key"] for p in P]
     assert len(set(keys)) == len(keys), "duplicate parameter key"
-    lock = check_lock(keys)
+    locked = [(name, text) for name, text in locks() if text]
     assert P[0]["kind"] == "readout", "parameter 0 must stay a read-only readout"
     for k in LEARNED_KEYS:
         assert PARAMS[k]["kind"] == "synth" and "options" not in PARAMS[k], "%s: LEARN sets knobs only" % k
@@ -1011,17 +1026,22 @@ def main():
         ("vst.json", json.dumps(VST, indent=1)),
         (os.path.join("build", "skin_style.json"), json.dumps(skin_style(), indent=1)),
         (os.path.join("build", "factory_presets.h"), presets_header(presets)),
-        (os.path.join("build", "param_ids.h"), header()),   # last: make's target, newer than the rest
-    ]
-    if lock:
-        outputs.insert(-1, ("params.lock", lock))
+        (os.path.join("build", "param_ids.h"), header()),
+    ] + locked
     os.makedirs(os.path.join(HERE, "build"), exist_ok=True)
+    written = []
     for name, text in outputs:
         path = os.path.join(HERE, name)
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                if f.read() == text.encode("utf-8"):
+                    continue   # its time stays: what make builds from it is not rebuilt
         with open(path + ".tmp", "w", newline="\n", encoding="utf-8") as f:
             f.write(text)
         os.replace(path + ".tmp", path)
-    print("surface: %d parameters, layout ok, %d factory presets" % (len(P), len(presets)))
+        written.append(os.path.basename(name))
+    print("surface: %d parameters, layout ok, %d factory presets; %s" % (
+        len(P), len(presets), "wrote " + ", ".join(written) if written else "nothing changed"))
 
 
 if __name__ == "__main__":
