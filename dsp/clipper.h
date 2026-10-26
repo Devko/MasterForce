@@ -11,6 +11,7 @@
 // it isn't processed at all and passes the input bit for bit. Switched, it crossfades over a chunk
 // between the input and its 2x path (the halfbands' own delay, 2.7 samples at the low end, makes that
 // one chunk a little phasey: it happens on LEARN or a change of target, not while playing).
+#include "../dsp/block.h"
 #include "../dsp/halfband.h"
 #include "../dsp/common.h"
 
@@ -49,8 +50,10 @@ public:
         const float w = 0.2f * c_;
         const ef::f4 a = ef::splat(c_ - w), b = ef::splat(c_ + w), span = ef::splat(2.0f * w), inv4w = ef::splat(1.0f / (4.0f * w)),
                      zero = ef::splat(0.0f);
+        sanitize(L, n);
+        sanitize(R, n);
         for (int i = 0; i < n; ++i) {
-            const float l = ef::sanitize(L[i]), r = ef::sanitize(R[i]);
+            const float l = L[i], r = R[i];
             const ef::f4 x = up_.process(l, r);   // (L early, L late, R early, R late)
             const ef::f4 ax = ef::max4(x, -x);
             const ef::f4 t = ef::min4(ef::max4(ax - a, zero), span);

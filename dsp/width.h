@@ -9,6 +9,7 @@
 // At width 1 with mono bass off, once its ramps have landed, it isn't processed at all: the input
 // passes bit for bit ((L + R) / 2 + (L - R) / 2 is L only within rounding). Width glides across a
 // chunk; mono bass fades in or out across one, its filter starting from silence.
+#include "../dsp/block.h"
 #include "../dsp/svf.h"   // common.h, clampParam
 
 namespace mf {
@@ -55,12 +56,14 @@ public:
 
     void process(float* L, float* R, int n) {
         if (idle()) return;
+        sanitize(L, n);
+        sanitize(R, n);
         for (int i = 0; i < n; ++i) {
-            const float l = ef::sanitize(L[i]), r = ef::sanitize(R[i]);
+            const float l = L[i], r = R[i];
             const float m = 0.5f * (l + r);
             float s = 0.5f * (l - r);
-            const float mono = mono_.next();
-            if (mono > 0.0f || mono_.moving()) s += mono * (highpass(s) - s);
+            const float mono = mono_.next();   // 0..1: over 0 is not +0 (bits, not a float compare)
+            if (!mf::sameBits(mono, 0.0f) || mono_.moving()) s += mono * (highpass(s) - s);
             s *= width_.next();
             L[i] = m + s;
             R[i] = m - s;

@@ -32,6 +32,10 @@ void Master::reset() {
     limiter_.reset();
     meter_.reset();
     clipPeak_ = 0.0f;
+    gainDb_ = 0.0f;
+    gainLin_ = 1.0f;
+    clipCeilDb_ = -1.0f;
+    clipLevel_ = std::pow(10.0f, (clipCeilDb_ + kClipOverDb) / 20.0f);
     fresh_ = true;
 }
 
@@ -78,9 +82,12 @@ void Master::set(const Params& p, const ef::Transport& t) {
     wasPlaying_ = t.playing;
 
     const float gainDb = ef::clampParam(p.gainDb, -12.0f, 18.0f, 0.0f);
-    const float gain = gainDb == 0.0f ? 1.0f : std::pow(10.0f, gainDb / 20.0f);
-    if (fresh_) gain_.jump(gain);
-    else gain_.to(gain, ef::kChunk);
+    if (!sameBits(gainDb, gainDb_)) {   // libm only when the knob moved, not every chunk
+        gainDb_ = gainDb;
+        gainLin_ = gainDb == 0.0f ? 1.0f : std::pow(10.0f, gainDb / 20.0f);
+    }
+    if (fresh_) gain_.jump(gainLin_);
+    else gain_.to(gainLin_, ef::kChunk);
 
     // Warmth: EffectForce's Drive, Tube (a triode's curve: even harmonics at every level), its gain
     // compensation keeping the level. WARMTH blends it in and drives it together, a touch darker:
@@ -133,7 +140,11 @@ void Master::set(const Params& p, const ef::Transport& t) {
     Limiter::Params lp;
     lp.ceilingDb = p.ceilingDb;
     limiter_.set(lp);
-    clipLevel_ = std::pow(10.0f, (ef::clampParam(p.ceilingDb, -12.0f, 0.0f, -1.0f) + kClipOverDb) / 20.0f);
+    const float ceilDb = ef::clampParam(p.ceilingDb, -12.0f, 0.0f, -1.0f);
+    if (!sameBits(ceilDb, clipCeilDb_)) {
+        clipCeilDb_ = ceilDb;
+        clipLevel_ = std::pow(10.0f, (ceilDb + kClipOverDb) / 20.0f);
+    }
     clip_.set(clipLevel_, gainDb > 0.0f);
     fresh_ = false;
 
@@ -210,7 +221,9 @@ void Master::process(float* L, float* R, int n) {
     }
     width_.process(L, R, n);
     if (!clip_.idle()) {
-        for (int i = 0; i < n; ++i) clipPeak_ = std::max(clipPeak_, std::max(std::fabs(L[i]), std::fabs(R[i])));
+        sanitize(L, n);   // as the clipper reads it
+        sanitize(R, n);
+        clipPeak_ = std::max(clipPeak_, std::max(peakOf(L, n), peakOf(R, n)));
         clip_.process(L, R, n);
     }
     limiter_.process(L, R, n);

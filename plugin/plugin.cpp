@@ -223,8 +223,22 @@ ef::Transport readTransport(Plugin* p) {
 
 // What leaves the plugin is never NaN and never past the limiter's ceiling (the limiter holds it
 // already; this is the last word): nothing can poison or blast MPC's mix.
+// Four at a time as selects (a scalar float compare stalls ARMv7's pipeline, dsp/block.h): what is
+// inside passes bit for bit, a denormal too.
 void guard(float* x, int n) {
-    for (int i = 0; i < n; ++i) {
+    int i = 0;
+    for (; i + 4 <= n; i += 4) {
+        const ef::f4 v = ef::load4(x + i);
+#if EF_NEON
+        const float32x4_t one = vdupq_n_f32(1.0f), minus = vdupq_n_f32(-1.0f);
+        const float32x4_t out = vbslq_f32(vcgeq_f32(v, one), one, vbslq_f32(vcleq_f32(v, minus), minus, vdupq_n_f32(0.0f)));
+        ef::store4(x + i, vbslq_f32(vcaltq_f32(v, one), v, out));   // |v| < 1: false for NaN
+#else
+        const ef::f4 one = ef::splat(1.0f), minus = ef::splat(-1.0f);
+        ef::store4(x + i, (v > minus) & (v < one) ? v : v >= one ? one : v <= minus ? minus : ef::splat(0.0f));
+#endif
+    }
+    for (; i < n; ++i) {
         const float v = x[i];
         x[i] = v > -1.0f && v < 1.0f ? v : v >= 1.0f ? 1.0f : v <= -1.0f ? -1.0f : 0.0f;   // NaN: 0
     }
@@ -234,12 +248,12 @@ void runBlock(Plugin* p, float* L, float* R, int n, const ef::Transport& tr) {
     // The sound only changes when a parameter does: then the engine takes a new snapshot. Looked
     // at only when something was written since the last look.
     const uint32_t writes = p->surface.writes();   // before the snapshot: a later write shows next block
-    p->engine.setGlueThreshold(p->surface.glueThresholdDb());
     if (!p->havePatch || writes != p->seenWrites) {
-        float fresh[P_COUNT];
-        if (p->surface.snapshot(fresh)) {   // mid-preset: false, look again next block
+        float fresh[P_COUNT], glueThr = 0.0f;
+        if (p->surface.snapshot(fresh, glueThr)) {   // mid-preset: false, look again next block
             p->seenWrites = writes;
             std::memcpy(p->snapshot, fresh, sizeof fresh);
+            p->engine.setGlueThreshold(glueThr);
             p->engine.setParams(p->snapshot);
             p->havePatch = true;
         }

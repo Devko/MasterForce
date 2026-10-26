@@ -81,7 +81,8 @@ private:
     Clipper clip_;
     Limiter limiter_;
     Loudness meter_;
-    float clipPeak_ = 0.0f, clipLevel_ = 1.0f;
+    float clipPeak_ = 0.0f, clipLevel_ = 1.0f, clipCeilDb_ = -1.0f;
+    float gainDb_ = 0.0f, gainLin_ = 1.0f;   // the gain knob as last worked out
 
     Learner learner_;
     LearnState learn_ = LearnState::Idle;

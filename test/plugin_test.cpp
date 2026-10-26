@@ -190,6 +190,15 @@ void testLearn() {
         CHECK(starts(g.display(P_LEARN_INFO), "LEARNED"));
         g.option(P_TARGET, "Loud");
         CHECK(std::fabs(g.value(P_GAIN) - std::min(gain + 4.0f, 18.0f)) < 0.05f);
+        // A corrupt measurement (a band no LEARN measures: derived from, it made the knobs NaN) is none.
+        std::string bad = chunk;
+        size_t f = bad.find("learn=1;");
+        for (int k = 0; k < 3; ++k) f = bad.find(';', f + 1);   // the bands, after the loudness and the true peak
+        bad.replace(f + 1, bad.find(',', f + 1) - f - 1, "3e38");
+        CHECK(g.load(bad) == 1);
+        CHECK(starts(g.display(P_LEARN_INFO), "PRESS LEARN"));
+        CHECK(g.load(chunk) == 1);
+        CHECK(starts(g.display(P_LEARN_INFO), "LEARNED"));
         // A project without a measurement takes it away.
         mf::Measurement none;
         std::string bare = chunk.substr(0, chunk.find("learn="));
@@ -246,6 +255,16 @@ void testLearnFails() {
         h.get(P_STATUS);
         CHECK(starts(h.display(P_LEARN_INFO), "LEARN: TOO QUIET"));
         CHECK(h.get(P_GAIN) == PARAM_INFO[P_GAIN].def);
+    }
+    {   // Two presses before a block ran (the slot off, suspended): an arm and its cancel, nothing.
+        Host h;
+        h.press(P_LEARN);
+        h.press(P_LEARN);
+        h.blocks(2);
+        CHECK(h.display(P_LEARN_INFO).find("LOUDEST 8 BARS") != std::string::npos);
+        h.press(P_LEARN);
+        h.blocks(2);
+        CHECK(starts(h.display(P_LEARN_INFO), "LEARN: IT STARTS"));
     }
 }
 

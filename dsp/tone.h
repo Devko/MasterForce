@@ -15,6 +15,7 @@
 #include "eq.h"
 
 #include <cmath>
+#include <cstring>
 
 namespace mf {
 
@@ -31,8 +32,14 @@ public:
     void reset() {
         tilt_.reset();
         ends_.reset();
+        fresh_ = true;
     }
     void set(const Params& p, const ef::Transport& t) {
+        // The same knobs as the last chunk: the EQs would only find that out again (nine clamps and
+        // compares each), their glides go on either way.
+        if (!fresh_ && std::memcmp(&p, &last_, sizeof p) == 0) return;
+        last_ = p;
+        fresh_ = false;
         ef::Eq::Params a, b;
         const float tilt = ef::clampParam(p.tiltDb, -kRange, kRange, 0.0f);
         a.lowFreq = kTiltLowHz;
@@ -76,6 +83,8 @@ private:
     }
 
     ef::Eq tilt_, ends_;
+    Params last_;
+    bool fresh_ = true;
 };
 
 } // namespace mf

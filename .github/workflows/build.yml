@@ -28,6 +28,7 @@ jobs:
 
   device:
     name: Device build (armhf, glibc 2.31, PGO), package, catalog check
+    needs: test   # a tag on a commit whose sanitizer suite fails publishes nothing
     runs-on: ubuntu-24.04
     permissions:
       contents: write   # the release, on a tag

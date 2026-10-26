@@ -117,8 +117,8 @@ bool parseMeasurement(const std::string& text, Measurement& m) {
     if (!parse(f[1], r.loudness) || !parse(f[2], r.truePeakDb)) return false;
     const std::vector<std::string> bands = split(f[3], ',');
     if (static_cast<int>(bands.size()) != kBands) return false;
-    for (int b = 0; b < kBands; ++b)
-        if (!parse(bands[static_cast<size_t>(b)], r.bandDb[b])) return false;
+    for (int b = 0; b < kBands; ++b)   // what Learner::finish() can write (-200: silence); past it a corrupt line
+        if (!parse(bands[static_cast<size_t>(b)], r.bandDb[b]) || !(r.bandDb[b] >= -200.0f && r.bandDb[b] <= 200.0f)) return false;
     int at = 0;
     for (const std::string& item : split(f[4], ',')) {
         uint32_t v = 0, run = 1;

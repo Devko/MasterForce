@@ -16,6 +16,7 @@
 // kept in its state.
 #include "loudness.h"
 #include "tone.h"
+#include "../dsp/svf.h"   // f2
 
 #include <cstdint>
 
@@ -56,18 +57,17 @@ public:
     Measurement finish() const;
 
 private:
-    struct Svf {
-        float ic1 = 0.0f, ic2 = 0.0f;
-    };
-
-    float g_[kBands] = {}, a1_[kBands] = {};
-    Svf band_[kBands];
+    // The bands side by side in the lanes of three f4s (the last two lanes empty: g 0, silent).
+    static constexpr int kGroups = (kBands + 3) / 4;
+    ef::f4 a1_[kGroups], ga1_[kGroups], gga1_[kGroups];   // a1, g a1, g g a1
+    ef::f4 ic1_[kGroups], ic2_[kGroups];
     double acc_[kBands] = {};
     uint64_t n_ = 0;
     Loudness meter_;
 
-    float scG_ = 0.0f, scA1_ = 1.0f;
-    Svf sc_[2];
+    // The glue detector's sidechain high-pass, L and R in two lanes.
+    ef::f2 scA1_, scGa1_, scGga1_;
+    ef::f2 sc1_, sc2_;
     float ca_ = 0.0f, cr_ = 0.0f, peak_ = 0.0f, level_ = 0.0f;
     uint32_t hist_[kHistBins] = {};
 };

@@ -82,10 +82,12 @@ public:
     // --- audio thread ------------------------------------------------------------
     // frames: the block just rendered. Texts that changed are told at most once per kTextGap frames.
     void        notify(AutomateFn automate, UpdateFn update, void* ctx, int frames);
-    // Every parameter's current 0..1 value. False (and `out` untouched) while a batch is
-    // being written: keep using the previous snapshot.
-    bool        snapshot(float* out) const;
-    // Moves on every value write: unchanged since a snapshot, the snapshot is still current.
+    // Every parameter's current 0..1 value, and the glue's threshold that goes with them (a LEARN
+    // or a preset writes both in one batch). False (and both untouched) while a batch is being
+    // written: keep using the previous snapshot.
+    bool        snapshot(float* out, float& glueThresholdDb) const;
+    // Moves on every value write (and the glue's threshold): unchanged since a snapshot, the
+    // snapshot is still current.
     uint32_t    writes() const { return changes_.load(std::memory_order_acquire); }
     // The texts changed underneath (the meters, LEARN's line, from the audio thread): MPC redraws them.
     void        textsChanged() { textGen_.fetch_add(1, std::memory_order_release); }

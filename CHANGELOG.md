@@ -14,3 +14,11 @@ The first build: MasterForce as a VST2 insert for MPC's master on the Force.
 - Warmth (tube saturation, level kept), width, mono bass, a 2x clipper before the limiter.
 - The meters on the top line: short-term and song loudness, true peak, gain reduction, CPU.
 - 15 factory presets in four categories; user presets, favorites, the browser.
+- Lighter on the Force's CPU: the true-peak detectors, the limiter, the meters and LEARN's measuring
+  run in vector lanes, without scalar float compares, which stall ARMv7. That is 55–60% fewer ARM
+  instructions at rest and while LEARN measures, and about 45% fewer with everything on. The sound is
+  the same.
+- Browsing presets after a LEARN no longer drops out for a moment: a preset and the knobs LEARN
+  derives from it reach the audio in one piece, GLUE's threshold with them.
+- Two LEARN presses while the slot is off cancel each other, and a corrupt measurement in a project
+  is ignored instead of turning the learned knobs to NaN.

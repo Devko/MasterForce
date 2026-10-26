@@ -26,8 +26,11 @@ void Engine::setParams(const float* norm) {
 }
 
 void Engine::setLearnPresses(uint32_t presses) {
-    if (presses == presses_) return;   // the surface's count starts at 0, as this one does: any change is a press
+    // The surface's count starts at 0, as this one does. Presses that came while no block ran (the
+    // slot off, suspended) count by their number: two are an arm and its cancel, nothing.
+    const bool odd = ((presses - presses_) & 1u) != 0;
     presses_ = presses;
+    if (!odd) return;
     const Master::LearnState s = master_.learnState();
     if (s == Master::LearnState::Armed || s == Master::LearnState::Measuring) {
         master_.cancelLearn();

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace mf {
 
@@ -37,7 +38,26 @@ void Loudness::design(Biquad& shelf, Biquad& high) {
 }
 
 Loudness::Loudness() {
-    design(shelf_, high_);
+    // The same two sections as SVFs (g = tan(pi f0 / rate), k = 1 / q): the shelf is
+    // (vh s^2 + vb k s + 1) / (s^2 + k s + 1), mixed v0 vh, v1 k (vb - vh), v2 (1 - vh); the high-pass
+    // s^2 / (..) times a0 = 1 + g k + g^2, because the standard's biquad keeps its numerator 1, -2, 1
+    // undivided: its passband sits 0.047 dB up, and BS.1770's -0.691 counts on that.
+    {
+        const double f0 = 1681.974450955533, g = 3.999843853973347, q = 0.7071752369554196;
+        const double vh = std::pow(10.0, g / 20.0), vb = std::pow(vh, 0.4996667741545416), k = 1.0 / q;
+        shelfA_ = ef::SvfUpdate::of(ef::splat2(static_cast<float>(std::tan(kPiD * f0 / kSr))), ef::splat2(static_cast<float>(k)));
+        shelfM_[0] = ef::splat2(static_cast<float>(vh));
+        shelfM_[1] = ef::splat2(static_cast<float>(k * (vb - vh)));
+        shelfM_[2] = ef::splat2(static_cast<float>(1.0 - vh));
+    }
+    {
+        const double f0 = 38.13547087602444, q = 0.5003270373238773, k = 1.0 / q, g = std::tan(kPiD * f0 / kSr);
+        const double a0 = 1.0 + g * k + g * g;
+        highA_ = ef::SvfUpdate::of(ef::splat2(static_cast<float>(g)), ef::splat2(static_cast<float>(k)));
+        highM_[0] = ef::splat2(static_cast<float>(a0));
+        highM_[1] = ef::splat2(static_cast<float>(-k * a0));
+        highM_[2] = ef::splat2(static_cast<float>(-a0));
+    }
     reset();
 }
 
@@ -55,8 +75,8 @@ float Loudness::weightingDb(float hz) {
 }
 
 void Loudness::reset() {
-    for (Biquad* b : {&shelf_, &high_})
-        for (int c = 0; c < 2; ++c) b->z1[c] = b->z2[c] = 0.0;
+    shelf_.clear();
+    high_.clear();
     acc_ = 0.0;
     inBlock_ = 0;
     std::fill(blocks_, blocks_ + kShort, 0.0);
@@ -65,37 +85,68 @@ void Loudness::reset() {
     std::fill(energy_, energy_ + kBins, 0.0);
     tp_.reset();
     peak_ = 0.0f;
+    momentary_ = shortTerm_ = integrated_ = kSilence;
 }
 
 void Loudness::process(const float* L, const float* R, int n) {
-    for (int i = 0; i < n; ++i) {
-        const float l = ef::sanitize(L[i]), r = ef::sanitize(R[i]);
-        peak_ = std::max(peak_, tp_.push(l, r));
-        const double kl = high_.run(0, shelf_.run(0, l)), kr = high_.run(1, shelf_.run(1, r));
-        acc_ += kl * kl + kr * kr;
-        if (++inBlock_ < kBlock) continue;
-
-        blocks_[blockW_] = acc_ / kBlock;
-        blockW_ = blockW_ + 1 == kShort ? 0 : blockW_ + 1;
-        filled_ = std::min(filled_ + 1, kShort);
-        acc_ = 0.0;
-        inBlock_ = 0;
-        for (Biquad* b : {&shelf_, &high_})   // decayed state to zero, not on into denormals
-            for (int c = 0; c < 2; ++c) {
-                if (std::fabs(b->z1[c]) < 1e-30) b->z1[c] = 0.0;
-                if (std::fabs(b->z2[c]) < 1e-30) b->z2[c] = 0.0;
-            }
-
-        if (filled_ >= 4) {   // a 400 ms window ends here: into the histogram, if above -70
-            const double z = meanOf(4);
-            const double lu = toLufs(z);
-            if (lu > -70.0) {
-                const int bin = std::min(kBins - 1, static_cast<int>((lu + 70.0) * 10.0));
-                ++count_[bin];
-                energy_[bin] += z;
-            }
+    peak_ = std::max(peak_, tp_.maxOf(L, R, n));
+    alignas(16) float l[TruePeak::kBlock], r[TruePeak::kBlock];
+    for (int pos = 0; pos < n; pos += TruePeak::kBlock) {   // clamped as the detector reads it: nothing overflows
+        const int len = std::min(TruePeak::kBlock, n - pos);
+        copy(l, L + pos, len);
+        copy(r, R + pos, len);
+        for (int i = len; i < (len + 3) / 4 * 4; ++i) l[i] = r[i] = 0.0f;   // clampIn() reads whole fours
+        clampIn(l, len, TruePeak::kMaxIn);
+        clampIn(r, len, TruePeak::kMaxIn);
+        for (int i = 0; i < len;) {   // up to each 100 ms block's end
+            const int m = std::min(len - i, kBlock - inBlock_);
+            weight(l + i, r + i, m);
+            i += m;
+            if ((inBlock_ += m) == kBlock) endBlock();
         }
     }
+}
+
+// K-weighted, squared and summed: in float over a few samples, then into the block's double.
+void Loudness::weight(const float* l, const float* r, int n) {
+    ef::SvfState s = shelf_, h = high_;   // locals: kept in registers across the loop
+    ef::f2 sum = ef::splat2(0.0f);
+    for (int i = 0; i < n; ++i) {
+        const ef::f2 k = h.tick(s.tick(ef::load2(l + i, r + i), shelfA_, shelfM_), highA_, highM_);
+        sum += k * k;
+    }
+    shelf_ = s;
+    high_ = h;
+#if EF_NEON
+    acc_ += static_cast<double>(vget_lane_f32(sum, 0)) + static_cast<double>(vget_lane_f32(sum, 1));
+#else
+    acc_ += static_cast<double>(sum[0]) + static_cast<double>(sum[1]);
+#endif
+}
+
+// A 100 ms block ends: into the short-term ring, and its 400 ms window into the histogram. The
+// readings change only here, so they are worked out here once, not on every look.
+void Loudness::endBlock() {
+    blocks_[blockW_] = acc_ / kBlock;
+    blockW_ = blockW_ + 1 == kShort ? 0 : blockW_ + 1;
+    filled_ = std::min(filled_ + 1, kShort);
+    acc_ = 0.0;
+    inBlock_ = 0;
+    shelf_.flushTiny();   // decayed state to zero, not on into denormals
+    high_.flushTiny();
+
+    if (filled_ >= 4) {   // a 400 ms window ends here: into the histogram, if above -70
+        const double z = meanOf(4);
+        const double lu = toLufs(z);
+        if (lu > -70.0) {
+            const int bin = std::min(kBins - 1, static_cast<int>((lu + 70.0) * 10.0));
+            ++count_[bin];
+            energy_[bin] += z;
+            integrated_ = gated();
+        }
+        momentary_ = static_cast<float>(lu);
+    }
+    shortTerm_ = static_cast<float>(toLufs(meanOf(kShort)));
 }
 
 double Loudness::meanOf(int blocks) const {
@@ -106,10 +157,7 @@ double Loudness::meanOf(int blocks) const {
     return s / n;
 }
 
-float Loudness::momentary() const { return filled_ >= 4 ? static_cast<float>(toLufs(meanOf(4))) : kSilence; }
-float Loudness::shortTerm() const { return filled_ >= 1 ? static_cast<float>(toLufs(meanOf(kShort))) : kSilence; }
-
-float Loudness::integrated() const {
+float Loudness::gated() const {
     uint64_t n = 0;
     double e = 0.0;
     for (int b = 0; b < kBins; ++b) {

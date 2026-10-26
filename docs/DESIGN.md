@@ -89,7 +89,8 @@ IN → Tone → Glue → Gain → Warmth → Width / mono bass → Clipper (2×)
   (plugin/engine.h); the next call MPC makes on its UI side (it polls the getters several times a
   second even with the screen closed) takes it up and sets the knobs as one batch, as a preset load
   does. The glue's threshold reaches the engine as an atomic, not as a parameter (it would show in
-  MPC's automation lists).
+  MPC's automation lists), taken with the parameters' snapshot: a LEARN or a preset writes the knobs
+  and their threshold in one batch, so the engine never plays one without the other.
 
 ## DSP
 
@@ -201,9 +202,28 @@ display (MPC skins can't draw one).
    | Everything, while LEARN measures | 5.90 | 7.06 | 7.84 |
 
    Every case passes, with room to spare in the 15% budget, but over the 4% this note first aimed at.
-   Most of it is the true peak: the limiter's detector and the meter's own, 144 multiply-adds a sample
-   each, and a third in the Learner's meter while LEARN measures. Cheaper, when it matters: the meter's
-   true peak from the limiter's detector and gain, the Learner's from sample peaks.
+   This note first blamed the true peak's multiply-adds. Counted (2026-10-26, qemu's execution log
+   of the bench's cases), most of it was scalar code. Each sample went through 38 scalar float
+   compares at rest and 69 with everything on: the limiter's control, the detectors' maxima, every
+   stage's sanitize() and the plugin's output guard. On ARMv7 each of those moves the VFP's flags to
+   the core and waits for its pipeline (dsp/block.h). The meters' K-weighting ran in doubles. Now:
+   - The detectors run four samples to a vector (dsp/truepeak.h).
+   - The limiter's compares are vector selects, and its running minimum is van Herk and Gil-Werman's.
+   - The K-weighting is two float SVFs in L/R lanes, equal to the standard's biquads within 0.0001 dB.
+   - Per chunk, libm runs only when a knob moved.
+
+   Nothing else changed: on x86 the output is the same bit for bit, the meters within 4e-5 LU, and
+   anything past +80 dBFS now reads as +80 dBFS. ARM instructions a sample, and compares among them:
+
+   | Case | instructions before | instructions after | compares before | compares after |
+   |---|---|---|---|---|
+   | At rest | 903 | 359 | 37.8 | 0.9 |
+   | LEARN measuring | 1677 | 685 | 57.6 | 1.0 |
+   | Learned | 1259 | 682 | 44.5 | 2.4 |
+   | Everything | 2298 | 1266 | 69.0 | 4.3 |
+
+   What is left in the driven cases is mostly EffectForce's Comp, Drive and EQ. 🔜 `make bench-device`
+   again for the Force's own numbers.
    🔜 Played: MasterForce on Master Out 1/2, LEARN, the meters, an export; then the by-ear check of
    step 2 on real beats, and the STYLE curves.
 

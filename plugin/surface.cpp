@@ -372,15 +372,15 @@ void Surface::rederive() {
     auto v = [this](int id) { return paramValue(id, want_[id].load()); };
     const Settings s = derive(measurement_, static_cast<int>(v(P_TARGET)), static_cast<int>(v(P_STYLE)), v(P_AMOUNT), v(P_CEILING));
     {
-        Batch batch(*this);   // the five knobs at once: the engine never plays half a LEARN
+        Batch batch(*this);   // the five knobs and GLUE's threshold at once: the engine never plays half a LEARN
         put(P_TILT, paramNorm(P_TILT, s.tone.tiltDb));
         put(P_LOW, paramNorm(P_LOW, s.tone.lowDb));
         put(P_AIR, paramNorm(P_AIR, s.tone.airDb));
         put(P_GLUE, paramNorm(P_GLUE, s.glueDb));
         put(P_GAIN, paramNorm(P_GAIN, s.gainDb));
+        updateGlueThreshold();
     }
     short_.store(s.shortDb, std::memory_order_relaxed);
-    updateGlueThreshold();
     refresh();
 }
 
@@ -389,7 +389,9 @@ void Surface::updateGlueThreshold() {
     float thr = 0.0f;
     if (glue > 0.0f)
         thr = measurement_.valid ? glueThresholdFor(measurement_, glue) : std::max(kUsualGlueLevelDb - 2.0f * glue, -60.0f);
+    if (thr == glueThr_.load(std::memory_order_relaxed)) return;
     glueThr_.store(thr, std::memory_order_relaxed);
+    changes_.fetch_add(1, std::memory_order_release);   // the audio thread takes it with the next snapshot
 }
 
 // --- presets ------------------------------------------------------------------------------
@@ -405,15 +407,20 @@ void Surface::loadPreset(const std::string& key) {
     // picked it (from FAVORITES, say) stays where it is instead of following the old one.
     const std::string old = presetKey();
     setPresetKey(key);
-    if (!loadState(*this, text, true)) {
-        setPresetKey(old);
-        refresh();
-        return;
+    {
+        // One batch over the preset and the knobs LEARN derives from it: between the two the
+        // learned knobs stand at their defaults (the gain at 0 dB), and a block played there drops out.
+        Batch batch(*this);
+        if (!loadState(*this, text, true)) {
+            setPresetKey(old);
+            refresh();
+            return;
+        }
+        // A preset says how to master; the measurement is the song's: what LEARN sets follows the
+        // preset's choices (docs/DESIGN.md "Behaviour").
+        rederive();
+        updateGlueThreshold();
     }
-    // A preset says how to master; the measurement is the song's: what LEARN sets follows the
-    // preset's choices (docs/DESIGN.md "Behaviour").
-    rederive();
-    updateGlueThreshold();
     presetLibrary().touchRecent(key);
     refresh();
 }
@@ -560,7 +567,7 @@ void Surface::setPresetKey(const std::string& key) {
 
 // --- audio thread -------------------------------------------------------------------------
 
-bool Surface::snapshot(float* out) const {
+bool Surface::snapshot(float* out, float& glueThresholdDb) const {
     const uint32_t before = batchSeq_.load(std::memory_order_acquire);
     if (before & 1u) return false;   // a preset is half written
     // Sound parameters only; not what the surface keeps for itself (tiles, the stepper, texts):
@@ -568,9 +575,11 @@ bool Surface::snapshot(float* out) const {
     float tmp[P_COUNT];
     for (int i = 0; i < P_COUNT; ++i)
         tmp[i] = PARAM_INFO[i].kind == Kind::Synth ? want_[i].load(std::memory_order_relaxed) : 0.0f;
+    const float thr = glueThr_.load(std::memory_order_relaxed);
     std::atomic_thread_fence(std::memory_order_acquire);
     if (batchSeq_.load(std::memory_order_relaxed) != before) return false;   // one started meanwhile
     std::copy(tmp, tmp + P_COUNT, out);
+    glueThresholdDb = thr;
     return true;
 }
 

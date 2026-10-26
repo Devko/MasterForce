@@ -19,6 +19,12 @@
 // Below the ceiling the gain is exactly 1 and the output is the input, delayed, bit for bit: the
 // reduction snaps to 0 under 1e-6, and the average is exactly 1 once its window holds only 1s.
 // A hard clip at the ceiling after the gain is a safety for rounding; it never shapes the sound.
+//
+// Speed: a block at a time. Steps 1 and 2 and the output run four samples to a vector; the
+// recursions of steps 3 to 5 run sample by sample, their compares as vector selects (dsp/block.h
+// says why). The running minimum is van Herk and Gil-Werman's: the minima of the last whole run of
+// kHold gains from each position to its end, and the minimum of the current run so far; the window
+// is the least of the two. Two mins a sample and kHold every kHold samples, no branches on the data.
 #include "truepeak.h"
 
 namespace mf {
@@ -43,30 +49,28 @@ public:
     float takeReductionDb();
 
 private:
-    static constexpr int kRing = 128;   // the queue and the window: > kHold, a power of two
-    static constexpr int kDelayRing = 128;   // the delay line: > kLatency, a power of two
-    static constexpr int kMask = kRing - 1;
+    static constexpr int kBlock = TruePeak::kBlock;
+    void block(float* L, float* R, int n);   // n <= kBlock
 
     TruePeak tp_;
     float lastInterval_ = 0.0f;   // the previous interval's peak
-    float ceil_ = 0.891f;
-    float reduction_ = 0.0f, density_ = 0.0f, relCoef_ = 0.0f, densityCoef_ = 0.0f;
+    float ceil_ = 0.891f, ceilDb_ = -1.0f;
+    float reduction_ = 0.0f, density_ = 0.0f, relCoef_ = 0.0f, densityCoef_ = 0.0f, relDensity_ = 0.0f;
 
-    // The running minimum: a monotonic queue of (value, time).
-    float qv_[kRing] = {};
-    uint32_t qt_[kRing] = {};
-    int qHead_ = 0, qLen_ = 0;
-    uint32_t t_ = 0;
+    // The running minimum: the current run's gains, the suffix minima of the run before it (and 1
+    // past its end), the current run's minimum so far.
+    float run_[kHold] = {};
+    float suffix_[kHold + 1] = {};
+    float prefix_ = 1.0f;
+    int runPos_ = 0;
 
     // The moving average.
-    float box_[kRing] = {};
+    float box_[kWindow] = {};
     int boxW_ = 0;
     double sum_ = kWindow;
-    int notOne_ = 0;
 
-    // The audio's delay line.
-    float dl_[kDelayRing] = {}, dr_[kDelayRing] = {};
-    int dw_ = 0;
+    // The audio's delay line: the last kLatency samples, then the block (and a group's room past it).
+    alignas(16) float delay_[2][kLatency + kBlock + 4] = {};
 
     float minGain_ = 1.0f;
 };

@@ -916,10 +916,12 @@ def factory_presets():
             if not f.endswith(PRESET_EXT):
                 continue
             where = "%s/%s" % (d, f)
-            text = open(os.path.join(folder, f), encoding="utf-8").read().replace("\r\n", "\n")
+            # utf-8-sig: a byte-order mark (a text editor's) is fine, as the plugin's loader skips it.
+            text = open(os.path.join(folder, f), encoding="utf-8-sig").read().replace("\r\n", "\n")
             lines = text.split("\n")
-            if not lines[0].startswith("masterforce "):
-                errors.append("%s: no 'masterforce N' header" % where)
+            header = re.match(r"masterforce ([0-9]+)", lines[0])   # as state.cpp's isStateText reads it
+            if not header or int(header.group(1)) < 1:
+                errors.append("%s: no 'masterforce N' header (N >= 1)" % where)
             seen_keys = {}
             for n, line in enumerate(lines[1:], 2):
                 if not line.strip():

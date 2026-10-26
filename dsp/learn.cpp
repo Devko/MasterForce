@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace mf {
 
@@ -18,6 +19,25 @@ float gainReduction(float levelDb, float thresholdDb) {
     return slope * (u * u / (4.0f * h) + std::max(over - h, 0.0f));
 }
 
+// The larger of |lane 0| and |lane 1|, in both.
+EF_INLINE ef::f2 absMax2(ef::f2 v) {
+#if EF_NEON
+    const ef::f2 a = vabs_f32(v);
+    return vpmax_f32(a, a);
+#else
+    const float m = std::max(std::fabs(v[0]), std::fabs(v[1]));
+    return ef::f2{m, m};
+#endif
+}
+
+EF_INLINE float lane0(ef::f2 v) {
+#if EF_NEON
+    return vget_lane_f32(v, 0);
+#else
+    return v[0];
+#endif
+}
+
 // The response of a Tone setting at the bands.
 void toneAtBands(const Tone::Params& p, float* out) {
     for (int b = 0; b < kBands; ++b) out[b] = Tone::responseDb(p, kBandHz[b]);
@@ -28,69 +48,111 @@ void toneAtBands(const Tone::Params& p, float* out) {
 // --- measuring ---------------------------------------------------------------------------------
 
 Learner::Learner() {
-    for (int b = 0; b < kBands; ++b) {
-        g_[b] = std::tan(ef::kPi * kBandHz[b] / ef::kRate);
-        a1_[b] = 1.0f / (1.0f + g_[b] * (g_[b] + kOctaveK));
+    float a1[kGroups * 4] = {}, ga1[kGroups * 4] = {}, gga1[kGroups * 4] = {};
+    for (int b = 0; b < kGroups * 4; ++b) {   // the empty lanes: g 0, a band-pass of nothing
+        const float g = b < kBands ? std::tan(ef::kPi * kBandHz[b] / ef::kRate) : 0.0f;
+        a1[b] = 1.0f / (1.0f + g * (g + kOctaveK));
+        ga1[b] = g * a1[b];
+        gga1[b] = g * g * a1[b];
     }
-    scG_ = std::tan(ef::kPi * kGlueScHz / ef::kRate);
-    scA1_ = 1.0f / (1.0f + scG_ * (scG_ + kButterK));
+    for (int j = 0; j < kGroups; ++j) {
+        a1_[j] = ef::load4(a1 + 4 * j);
+        ga1_[j] = ef::load4(ga1 + 4 * j);
+        gga1_[j] = ef::load4(gga1 + 4 * j);
+    }
+    const float scG = std::tan(ef::kPi * kGlueScHz / ef::kRate);
+    const float scA1 = 1.0f / (1.0f + scG * (scG + kButterK));
+    scA1_ = ef::splat2(scA1);
+    scGa1_ = ef::splat2(scG * scA1);
+    scGga1_ = ef::splat2(scG * scG * scA1);
     ca_ = ef::smoothCoef(kGlueAttackMs * 0.001f);
     cr_ = ef::smoothCoef(kGlueReleaseMs * 0.001f);
     begin();
 }
 
 void Learner::begin() {
-    for (int b = 0; b < kBands; ++b) {
-        band_[b] = Svf{};
-        acc_[b] = 0.0;
-    }
+    for (int j = 0; j < kGroups; ++j) ic1_[j] = ic2_[j] = ef::splat(0.0f);
+    std::fill(acc_, acc_ + kBands, 0.0);
     n_ = 0;
     meter_.reset();
-    sc_[0] = sc_[1] = Svf{};
+    sc1_ = sc2_ = ef::splat2(0.0f);
     peak_ = level_ = 0.0f;
     std::fill(hist_, hist_ + kHistBins, 0u);
 }
 
 void Learner::process(const float* L, const float* R, int n) {
     meter_.process(L, R, n);
-    for (int i = 0; i < n; ++i) {
-        const float l = ef::sanitize(L[i]), r = ef::sanitize(R[i]);
-
-        // The bands of the mid (band-pass: k v1, unity at the centre).
-        const float m = 0.5f * (l + r);
-        for (int b = 0; b < kBands; ++b) {
-            Svf& z = band_[b];
-            const float g = g_[b], a1 = a1_[b];
-            const float v3 = m - z.ic2;
-            const float v1 = a1 * z.ic1 + g * a1 * v3;
-            const float v2 = z.ic2 + g * a1 * z.ic1 + g * g * a1 * v3;
-            z.ic1 = 2.0f * v1 - z.ic1;
-            z.ic2 = 2.0f * v2 - z.ic2;
-            const float y = kOctaveK * v1;
-            acc_[b] += static_cast<double>(y) * y;
-        }
-
-        // The glue detector, as Comp's: the sidechain's high-pass, the louder side's peak.
-        float d = 0.0f;
-        const float x[2] = {l, r};
-        for (int c = 0; c < 2; ++c) {
-            Svf& z = sc_[c];
-            const float v3 = x[c] - z.ic2;
-            const float v1 = scA1_ * z.ic1 + scG_ * scA1_ * v3;
-            const float v2 = z.ic2 + scG_ * scA1_ * z.ic1 + scG_ * scG_ * scA1_ * v3;
-            z.ic1 = 2.0f * v1 - z.ic1;
-            z.ic2 = 2.0f * v2 - z.ic2;
-            d = std::max(d, std::fabs(x[c] - kButterK * v1 - v2));
-        }
-        peak_ = std::max(d, peak_ + cr_ * (d - peak_) - kTiny);
-        level_ = std::max(0.0f, level_ + ca_ * (peak_ - level_) - kTiny);
-        const float db = ef::gainToDb(level_);
-        const int bin = static_cast<int>((db - kHistLoDb) / kHistStepDb);
-        ++hist_[std::min(std::max(bin, 0), kHistBins - 1)];
+    const ef::f4 octK = ef::splat(kOctaveK), half = ef::splat(0.5f);
+    const ef::f2 butterK = ef::splat2(kButterK), tiny = ef::splat2(kTiny), zero = ef::splat2(0.0f);
+    const ef::f2 cr = ef::splat2(cr_), ca = ef::splat2(ca_);
+    ef::f2 peak = ef::splat2(peak_), level = ef::splat2(level_);
+    // Locals: the compiler can't keep members in registers across the histogram's stores.
+    ef::f4 ic1[kGroups], ic2[kGroups];
+    for (int j = 0; j < kGroups; ++j) {
+        ic1[j] = ic1_[j];
+        ic2[j] = ic2_[j];
     }
+    ef::f2 sc1 = sc1_, sc2 = sc2_;
+    alignas(16) float l[TruePeak::kBlock], r[TruePeak::kBlock];
+    for (int pos = 0; pos < n; pos += TruePeak::kBlock) {   // clamped as the detectors read it: nothing overflows
+        const int len = std::min(TruePeak::kBlock, n - pos);
+        copy(l, L + pos, len);
+        copy(r, R + pos, len);
+        for (int i = len; i < (len + 3) / 4 * 4; ++i) l[i] = r[i] = 0.0f;   // clampIn() reads whole fours
+        clampIn(l, len, TruePeak::kMaxIn);
+        clampIn(r, len, TruePeak::kMaxIn);
+        ef::f4 sq[kGroups];   // the bands' squares, summed in float over the block, then into doubles
+        for (int j = 0; j < kGroups; ++j) sq[j] = ef::splat(0.0f);
+        for (int i = 0; i < len; ++i) {
+            // The bands of the mid (band-pass: k v1, unity at the centre).
+            const ef::f4 m = half * (ef::splat(l[i]) + ef::splat(r[i]));
+            for (int j = 0; j < kGroups; ++j) {
+                const ef::f4 v3 = m - ic2[j];
+                const ef::f4 v1 = a1_[j] * ic1[j] + ga1_[j] * v3;
+                const ef::f4 v2 = ic2[j] + ga1_[j] * ic1[j] + gga1_[j] * v3;
+                ic1[j] = v1 + v1 - ic1[j];
+                ic2[j] = v2 + v2 - ic2[j];
+                const ef::f4 y = octK * v1;
+                sq[j] += y * y;
+            }
+
+            // The glue detector, as Comp's: the sidechain's high-pass, the louder side's peak.
+            const ef::f2 x = ef::load2(l + i, r + i);
+            const ef::f2 v3 = x - sc2;
+            const ef::f2 v1 = scA1_ * sc1 + scGa1_ * v3;
+            const ef::f2 v2 = sc2 + scGa1_ * sc1 + scGga1_ * v3;
+            sc1 = v1 + v1 - sc1;
+            sc2 = v2 + v2 - sc2;
+            const ef::f2 d = absMax2(x - butterK * v1 - v2);
+            peak = ef::max2(d, peak + cr * (d - peak) - tiny);
+            level = ef::max2(zero, level + ca * (peak - level) - tiny);
+            // gainToDb() but without its compare: under 1e-10 it reads -200, so does the floor's log.
+            const float db = 6.02059991328f * ef::log2Fast(lane0(ef::max2(level, ef::splat2(1e-10f))));
+            const int bin = static_cast<int>((db - kHistLoDb) / kHistStepDb);
+            ++hist_[std::min(std::max(bin, 0), kHistBins - 1)];
+        }
+        for (int j = 0; j < kGroups; ++j) {
+            alignas(16) float s[4];
+            ef::store4(s, sq[j]);
+            for (int k = 0; k < 4 && 4 * j + k < kBands; ++k) acc_[4 * j + k] += s[k];
+        }
+    }
+    peak_ = lane0(peak);
+    level_ = lane0(level);
+    sc1_ = sc1;
+    sc2_ = sc2;
     n_ += static_cast<uint64_t>(n);
-    for (Svf& z : band_)
-        if (std::fabs(z.ic1) < kTiny && std::fabs(z.ic2) < kTiny) z = Svf{};
+    for (int j = 0; j < kGroups; ++j) {   // a decayed band to exact silence, both states at once
+#if EF_NEON
+        const uint32x4_t quiet = vandq_u32(vcaltq_f32(ic1[j], vdupq_n_f32(kTiny)), vcaltq_f32(ic2[j], vdupq_n_f32(kTiny)));
+        ic1_[j] = vbslq_f32(quiet, vdupq_n_f32(0.0f), ic1[j]);
+        ic2_[j] = vbslq_f32(quiet, vdupq_n_f32(0.0f), ic2[j]);
+#else
+        const auto quiet = (abs4(ic1[j]) < ef::splat(kTiny)) & (abs4(ic2[j]) < ef::splat(kTiny));
+        ic1_[j] = quiet ? ef::splat(0.0f) : ic1[j];
+        ic2_[j] = quiet ? ef::splat(0.0f) : ic2[j];
+#endif
+    }
 }
 
 Measurement Learner::finish() const {
