@@ -222,8 +222,19 @@ display (MPC skins can't draw one).
    | Learned | 1259 | 682 | 44.5 | 2.4 |
    | Everything | 2298 | 1266 | 69.0 | 4.3 |
 
-   What is left in the driven cases is mostly EffectForce's Comp, Drive and EQ. 🔜 `make bench-device`
-   again for the Force's own numbers.
+   What is left in the driven cases is mostly EffectForce's Comp, Drive and EQ. ✅ `make bench-device`
+   again (2026-10-26: the profile-guided build as installed, MPC running, two runs within 0.1), percent
+   of the block, avg / p99 / max:
+
+   | Case | 2026-10-24 | 2026-10-26 | avg |
+   |---|---|---|---|
+   | At rest: the limiter and the meters | 2.15 / 3.17 / 3.73 | 0.99 / 1.36 / 1.86 | −54% |
+   | LEARN measuring | 3.52 / 4.51 / 5.00 | 1.79 / 2.46 / 2.79 | −49% |
+   | Learned: tone, glue, gain into the clipper | 3.31 / 4.05 / 4.50 | 2.12 / 2.66 / 2.80 | −36% |
+   | Everything, while LEARN measures | 5.90 / 7.06 / 7.84 | 4.01 / 4.94 / 5.19 | −32% |
+
+   The time fell about as the instructions did, a little less: the compares' stalls cost no more than
+   their share. Three cases are under the 4% now; everything at once is at 4.9 (p99).
    🔜 Played: MasterForce on Master Out 1/2, LEARN, the meters, an export; then the by-ear check of
    step 2 on real beats, and the STYLE curves.
 
