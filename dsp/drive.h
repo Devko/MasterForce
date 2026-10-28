@@ -1,5 +1,5 @@
 #pragma once
-// Drive: saturation, clipping, folding and a bit crusher (EffectForce's docs/DESIGN.md, "Modules").
+// Drive: saturation, clipping, folding and a bit crusher (EffectWerk's docs/DESIGN.md, "Modules").
 //
 //   in -> x Drive -> + bias -> 2x up -> shaper -> 2x down -> DC blocker -> tilt -> x Out -> mix with in
 //

@@ -1,5 +1,5 @@
 #pragma once
-// Comp (EffectForce's docs/DESIGN.md, "Modules"): one module, two modes.
+// Comp (EffectWerk's docs/DESIGN.md, "Modules"): one module, two modes.
 //
 // Comp: a feed-forward compressor, stereo-linked. The detector reads the louder channel's peak
 // (max |L|, |R|, after the sidechain low cut): a sine's level is its peak in dBFS, and a source

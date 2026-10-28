@@ -1,6 +1,6 @@
 #pragma once
 // Surface: what every plugin parameter does when MPC sets it, what it reads back, and what its value
-// text says. EffectForce's plugin/surface.{h,cpp} (SubForce's, PolyForce's, RackForce's, device-proven)
+// text says. EffectWerk's plugin/surface.{h,cpp} (SubWerk's, PolyWerk's, RackWerk's, device-proven)
 // without its chain and scenes, plus LEARN: the button, the measurement it brings back, and the
 // knobs derived from it (docs/DESIGN.md "Behaviour").
 //
@@ -17,7 +17,7 @@
 // is 1/128 of the range, a data-wheel click 0.01, a touch drag about 0.04, and a tile tap
 // sends a release echo ~0.7 s later. So every stepped parameter (choices, the preset stepper)
 // moves exactly one step per event in MPC's direction, and the plugin pushes the snapped value back
-// (stepIndex / stepItem below, RackForce's rules). A button tap toggles its read-back, and a button
+// (stepIndex / stepItem below, RackWerk's rules). A button tap toggles its read-back, and a button
 // always reads back 0 (it springs back): every 1 is a press, and no release ever follows.
 #include "../dsp/learn.h"
 #include "library.h"
@@ -120,7 +120,7 @@ private:
     int  stepperCur(int i, const Listing& L, const std::string& key) const;   // where a stepper stands
     void updateGlueThreshold();
 
-    // UI-thread-only stepping state (RackForce's).
+    // UI-thread-only stepping state (RackWerk's).
     long long lastSentMs_[P_COUNT] = {};
     float     lastN_[P_COUNT] = {};
     long long toggleMs_[P_COUNT] = {};

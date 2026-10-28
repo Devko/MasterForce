@@ -42,7 +42,7 @@ void Master::reset() {
 void Master::set(const Params& p, const ef::Transport& t) {
     tone_.set(p.tone, t);
 
-    // Glue: EffectForce's Comp, off at 0 and then not processed at all. Woken, it starts cleared and
+    // Glue: EffectWerk's Comp, off at 0 and then not processed at all. Woken, it starts cleared and
     // runs unheard (mix 0 is its input bit for bit) until its detector has settled, so its makeup
     // doesn't sound before its reduction does; then it fades in. Put to sleep, it fades out first.
     if (p.glueDb > 0.0f) {
@@ -89,7 +89,7 @@ void Master::set(const Params& p, const ef::Transport& t) {
     if (fresh_) gain_.jump(gainLin_);
     else gain_.to(gainLin_, ef::kChunk);
 
-    // Warmth: EffectForce's Drive, Tube (a triode's curve: even harmonics at every level), its gain
+    // Warmth: EffectWerk's Drive, Tube (a triode's curve: even harmonics at every level), its gain
     // compensation keeping the level. WARMTH blends it in and drives it together, a touch darker:
     // up to half way a little density and a soft second harmonic, at full plainly saturated. Off at 0
     // and then not processed at all, but the chain keeps the last kWarmHistory samples it would have

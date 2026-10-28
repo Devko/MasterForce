@@ -12,14 +12,14 @@
 
 ## Where it goes
 
-MasterForce is the **last insert on Master Out 1/2**: on MPC's master, after anything else there
-(EffectForce's performance mixer, say). It delays the audio by 64 samples (1.45 ms) to see the peaks
+MasterWerk is the **last insert on Master Out 1/2**: on MPC's master, after anything else there
+(EffectWerk's performance mixer, say). It delays the audio by 64 samples (1.45 ms) to see the peaks
 coming; on the master nothing runs beside it, so nothing is out of time. On a track it would be: put
 it on the master only.
 
 ## The end of the chain
 
-As it loads, MasterForce is a safety: a true-peak limiter at −1 dBTP. Nothing that leaves the master
+As it loads, MasterWerk is a safety: a true-peak limiter at −1 dBTP. Nothing that leaves the master
 goes over it, between the samples either (where a converter or YouTube's encoder would clip), and
 below it the sound is untouched: bit for bit, 64 samples late. Leave it on while you play.
 
@@ -59,7 +59,7 @@ GAIN, WIDTH, MONO BASS, TARGET, STYLE and the preset.
 
 The top line: `-13.9 LUFS   SONG -14.2   PEAK -1.0   GR 2.3   CPU 4%`: the loudness of the last 3 s,
 the song's since MPC started playing, its highest true peak, the gain reduction of the last quarter
-second (the clipper and the limiter), and what MasterForce costs.
+second (the clipper and the limiter), and what MasterWerk costs.
 
 They read **before MPC's master fader**: export with the master fader at 0 dB.
 
@@ -69,7 +69,7 @@ They read **before MPC's master fader**: export with the master fader at 0 dB.
 2. Play the song through once: SONG should read about −14 (a little under is fine; YouTube doesn't
    turn quieter songs up, so not much under). LOUDNESS trims it.
 3. Master fader at 0 dB, then the save screen's audio mixdown (the Arranger's): the WAV is what you
-   heard, MasterForce included.
+   heard, MasterWerk included.
 
 ## Presets
 

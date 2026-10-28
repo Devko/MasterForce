@@ -1,6 +1,6 @@
 #pragma once
-// EffectForce's reference material (its tools/loudness.h, unchanged but for this note): the mix the bench and the
-// profile-guided build's trainer play through the plugin. (EffectForce level-matches its presets with it.)
+// EffectWerk's reference material (its tools/loudness.h, unchanged but for this note): the mix the bench and the
+// profile-guided build's trainer play through the plugin. (EffectWerk level-matches its presets with it.)
 //
 // The material: four bars at 120 BPM of chords (detuned saws), a bass line (square), kick, snare and
 // hats, 8 s. Each category plays what it is made for (a lead preset with a low cut isn't judged on a

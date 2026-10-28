@@ -1,5 +1,5 @@
 #pragma once
-// The engine: MasterForce's chain (dsp/master.h) played by the parameters, chunk by chunk, with
+// The engine: MasterWerk's chain (dsp/master.h) played by the parameters, chunk by chunk, with
 // LEARN's hand-offs between the threads.
 //
 //   in   the parameters' snapshot (setParams), the glue's threshold, LEARN's presses (a counter

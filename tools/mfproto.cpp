@@ -1,4 +1,4 @@
-// mfproto: MasterForce's chain offline, to hear and tune it before it's a plugin (docs/DESIGN.md, "Plan").
+// mfproto: MasterWerk's chain offline, to hear and tune it before it's a plugin (docs/DESIGN.md, "Plan").
 //
 //   mfproto analyze <in.wav>
 //       The whole file's loudness, true peak, peak-to-loudness ratio and octave bands, and the three
@@ -50,7 +50,7 @@ bool load(const char* path, mfw::Audio& a) {
         return false;
     }
     if (a.rate != 44100) {
-        std::fprintf(stderr, "%s: %d Hz; MasterForce runs at 44.1 kHz, as MPC does (convert it first)\n", path, a.rate);
+        std::fprintf(stderr, "%s: %d Hz; MasterWerk runs at 44.1 kHz, as MPC does (convert it first)\n", path, a.rate);
         return false;
     }
     return true;

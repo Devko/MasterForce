@@ -1,9 +1,9 @@
 #pragma once
-// MasterForce's per-block helpers on top of dsp/simd.h: a block's samples four at a time.
+// MasterWerk's per-block helpers on top of dsp/simd.h: a block's samples four at a time.
 //
 // Why: on ARMv7 a scalar float compare (std::max, a clamp, isfinite) moves the VFP's flags to the
 // core and waits for its pipeline to drain first, so a loop of them per sample costs far more than
-// its arithmetic. EffectForce's modules keep their per-sample work in vector lanes for that reason
+// its arithmetic. EffectWerk's modules keep their per-sample work in vector lanes for that reason
 // (dsp/comp.h); these do the same for the stages written here: compares become masks and selects.
 #include "common.h"
 

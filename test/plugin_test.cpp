@@ -74,7 +74,7 @@ void testBasics() {
     CHECK(h.op(vst::effGetPlugCategory) == vst::kPlugCategEffect);
     char b[64] = {};
     h.op(vst::effGetEffectName, 0, 0, b);
-    CHECK(std::string(b) == "MasterForce");
+    CHECK(std::string(b) == "MasterWerk");
     CHECK(h.op(vst::effCanDo, 0, 0, const_cast<char*>("plugAsChannelInsert")) == 1);
     CHECK(h.op(vst::effCanDo, 0, 0, const_cast<char*>("receiveVstMidiEvent")) == -1);
     CHECK(h.op(vst::effCanDo, 0, 0, const_cast<char*>("bypass")) == -1);
@@ -220,7 +220,7 @@ void testLearn() {
             ss << in.rdbuf();
             saved = ss.str();
         }
-    CHECK(starts(saved, "masterforce 1") && saved.find("target=") != std::string::npos);
+    CHECK(starts(saved, "masterwerk 1") && saved.find("target=") != std::string::npos);
     CHECK(saved.find("gain=") == std::string::npos && saved.find("tilt=") == std::string::npos &&
           saved.find("learn=") == std::string::npos);
 

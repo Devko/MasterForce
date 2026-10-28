@@ -9,7 +9,7 @@
 
 namespace mf {
 namespace {
-constexpr const char* kMagic = "masterforce ";
+constexpr const char* kMagic = "masterwerk ";
 
 bool saved(int i) { return PARAM_INFO[i].kind == Kind::Synth; }
 

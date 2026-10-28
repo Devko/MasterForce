@@ -5,7 +5,7 @@
 // The curve, on |x| with c the clip level and a knee of w = c / 5 either side of it: x itself up to
 // c - w, a parabola from there to c + w (where it reaches c, flat), c beyond. Continuous with its
 // slope throughout, so it adds harmonics gently as it bites. Run 2x oversampled (dsp/halfband.h, as
-// EffectForce's Drive) so what it adds above 22 kHz doesn't fold back down as aliasing.
+// EffectWerk's Drive) so what it adds above 22 kHz doesn't fold back down as aliasing.
 //
 // It works only while the chain is driving (the gain above 0 dB, set by LEARN's target): otherwise
 // it isn't processed at all and passes the input bit for bit. Switched, it crossfades over a chunk

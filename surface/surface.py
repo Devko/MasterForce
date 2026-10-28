@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MasterForce touchscreen surface: the ONE place the plugin's parameters and pages are defined.
+"""MasterWerk touchscreen surface: the ONE place the plugin's parameters and pages are defined.
 
 Writes, next to this file:
   params.json        ordered VST parameter list (index = position; append-only once released:
@@ -23,7 +23,7 @@ disagree.
 
 Before writing anything the layout is checked the way shadow_skin.py would, plus geometry and the
 parameter names MPC shows, so a broken page fails here instead of on the device. The layout
-machinery and its checks are EffectForce's (PolyForce's), unchanged.
+machinery and its checks are EffectWerk's (PolyWerk's), unchanged.
 
 Run: python3 surface/surface.py   (make surface does this)
 """
@@ -40,8 +40,8 @@ STEPPER_RANGE = 1023        # the preset stepper's VST range: 0..1023 items (ste
 BROWSER_CATS = 16           # category tiles on the browser page (2 x 8)
 BROWSER_ITEMS = 24          # preset tiles (3 x 8)
 
-VST = {"name": "MasterForce", "vendor": "Devko", "uid": "MsFc", "version": 1000,
-       "so": "masterforce.so", "params": "params.json", "layout": "layout.conf", "effect": True}
+VST = {"name": "MasterWerk", "vendor": "Devko", "uid": "MsFc", "version": 1000,
+       "so": "masterwerk.so", "params": "params.json", "layout": "layout.conf", "effect": True}
 
 
 # --- parameters ------------------------------------------------------------------------------
@@ -183,8 +183,8 @@ def params_json():
 
 
 # --- touchscreen pages -------------------------------------------------------------------------
-# EffectForce's look (PolyForce's td3 rounded cards on one flat colour; bg and box the same, so the opaque image of
-# a control never shows a box behind it), in MasterForce's coral. Plugin area 1280x628 at y = 86..714. Every page: a
+# EffectWerk's look (PolyWerk's td3 rounded cards on one flat colour; bg and box the same, so the opaque image of
+# a control never shows a box behind it), in MasterWerk's coral. Plugin area 1280x628 at y = 86..714. Every page: a
 # header row (the meters from x=24; the preset stepper right-aligned to x=1256), then cards at y=158 and y=440
 # (h=270) or one full-height card (h=552). Nothing may sit in a card's title band (y .. y+44: td3 draws the title
 # rule at y+38). skin_polish.py (run by `make skin` after the generator) redraws the knob strips, the trigger
@@ -298,7 +298,7 @@ class Layout:
     def toggle(self, cx, cy, key):
         self.add('toggle cx=%d cy=%d label="%s" key=%s' % (cx, cy, PARAMS[key]["name"], key))
 
-    def meter(self, cx, cy, w, h, key):   # display only: shadow_skin's filmstrip meter, no look (PolyForce patch)
+    def meter(self, cx, cy, w, h, key):   # display only: shadow_skin's filmstrip meter, no look (PolyWerk patch)
         self.add('meter cx=%d cy=%d w=%d h=%d key=%s' % (cx, cy, w, h, key))
 
     def tiles(self, x, y, w, cols, rows, th, gap, key):
@@ -920,9 +920,9 @@ def factory_presets():
             # utf-8-sig: a byte-order mark (a text editor's) is fine, as the plugin's loader skips it.
             text = open(os.path.join(folder, f), encoding="utf-8-sig").read().replace("\r\n", "\n")
             lines = text.split("\n")
-            header = re.match(r"masterforce ([0-9]+)", lines[0])   # as state.cpp's isStateText reads it
+            header = re.match(r"masterwerk ([0-9]+)", lines[0])   # as state.cpp's isStateText reads it
             if not header or int(header.group(1)) < 1:
-                errors.append("%s: no 'masterforce N' header (N >= 1)" % where)
+                errors.append("%s: no 'masterwerk N' header (N >= 1)" % where)
             seen_keys = {}
             for n, line in enumerate(lines[1:], 2):
                 if not line.strip():

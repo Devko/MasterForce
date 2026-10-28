@@ -6,7 +6,7 @@
 # tag also publishes it as a GitHub release, its notes CHANGELOG.md's section for that version. A plain tag is a
 # regular release, which the catalog lists with a download; a tag with a suffix (v0.1.0-beta) publishes a
 # prerelease: the catalog's beta channel, hidden unless a visitor asks for betas. The plugin's version is the
-# tag without the suffix (X.Y.Z only), as PolyForce's.
+# tag without the suffix (X.Y.Z only), as PolyWerk's.
 #
 # Only the release job may write, and it runs nothing from the repository but an awk over CHANGELOG.md: the builds
 # (the repo's own make, in a container) run read-only, and no job keeps the checkout's token in .git/config. The
@@ -61,14 +61,14 @@ jobs:
       - name: Package
         run: |
           case "$GITHUB_REF" in refs/tags/v*) v="${GITHUB_REF_NAME#v}"; version="PLUGIN_VERSION=${v%%-*}" ;; *) version= ;; esac
-          make $version -o build/arm/masterforce.so plugin-package
+          make $version -o build/arm/masterwerk.so plugin-package
       - name: Catalog check
         run: >-
           python3 third_party/mpc-vst-plugins/tools/catalog_check.py dist/*-mpc-armv7.zip
-          --catalog --expect-id masterforce --expect-repo Devko/MasterForce
+          --catalog --expect-id masterwerk --expect-repo Devko/MasterWerk
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02   # v4.6.2
         with:
-          name: MasterForce-mpc-armv7
+          name: MasterWerk-mpc-armv7
           path: dist/*-mpc-armv7.zip
           if-no-files-found: error
 
@@ -85,10 +85,10 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093   # v4.3.0
         with:
-          name: MasterForce-mpc-armv7
+          name: MasterWerk-mpc-armv7
           path: dist
       # The release's notes are CHANGELOG.md's section for the tag's version ("## X.Y.Z"): the catalog shows
-      # them. A tag without a section fails here, before anything is published. (SubForce's.)
+      # them. A tag without a section fails here, before anything is published. (SubWerk's.)
       - name: Release notes
         run: |
           v="${GITHUB_REF_NAME#v}"; v="${v%%-*}"

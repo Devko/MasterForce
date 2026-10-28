@@ -7,7 +7,7 @@
 //     their mean squares in dB
 //   - the section's gated loudness and its highest true peak (dsp/loudness.h)
 //   - a histogram of the glue compressor's detector level, the detector rebuilt here exactly
-//     (EffectForce's Comp: the louder channel's peak after the sidechain low cut, an instant attack
+//     (EffectWerk's Comp: the louder channel's peak after the sidechain low cut, an instant attack
 //     with the release, then the attack): from it the mean gain reduction of any threshold follows,
 //     so GLUE (an amount of reduction) becomes a threshold without playing the section again
 //
@@ -31,7 +31,7 @@ constexpr float kAboveTarget = 1.5f;     // the section is aimed this far over t
 constexpr int kBands = 10;
 inline constexpr float kBandHz[kBands] = {31.25f, 62.5f, 125.0f, 250.0f, 500.0f, 1000.0f, 2000.0f, 4000.0f, 8000.0f, 16000.0f};
 
-// The glue compressor's settings, shared by the chain (EffectForce's Comp) and the Learner's copy of
+// The glue compressor's settings, shared by the chain (EffectWerk's Comp) and the Learner's copy of
 // its detector.
 constexpr float kGlueRatio = 2.0f, kGlueKneeDb = 6.0f, kGlueAttackMs = 30.0f, kGlueReleaseMs = 300.0f, kGlueScHz = 100.0f;
 constexpr float kGlueMaxDb = 6.0f;   // GLUE's range: 0 (off) .. this much mean reduction

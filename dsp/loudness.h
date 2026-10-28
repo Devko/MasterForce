@@ -2,7 +2,7 @@
 // Loudness (ITU-R BS.1770-4, EBU R 128) in real time: what the page's line shows and what LEARN
 // measures a section by.
 //
-// K-weighting (a high shelf and a high-pass, both channels, as libebur128 derives them; EffectForce's
+// K-weighting (a high shelf and a high-pass, both channels, as libebur128 derives them; EffectWerk's
 // tools/loudness.h has the same), summed into 100 ms blocks. It runs as two dsp/svf.h filters, L and
 // R in the lanes of one vector: libebur128's biquads are the bilinear transforms of two analog
 // sections prewarped at their corners, which is what an SVF with that g, k and mix is, and in float

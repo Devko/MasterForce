@@ -1,6 +1,6 @@
-# MasterForce: design
+# MasterWerk: design
 
-A sibling of EffectForce for the last insert on the Force's master. While
+A sibling of EffectWerk for the last insert on the Force's master. While
 you play it is the end of the chain: never too loud, never clipping. After one press it gives a master
 good enough for a YouTube upload. It is a safe finisher, not LANDR and not a mastering engineer.
 
@@ -10,15 +10,15 @@ Decided with the user (2026-10-08 to 2026-10-24):
 - **Two jobs in one:** end of chain (always on, safe with no setup) and mastering (LEARN once).
 - **LEARN on a clear input, not the whole song:** the user plays the loudest section. Whole-song
   analysis, reference matching, genre detection and trained models are out.
-- **A plugin of its own**, not an EffectForce module: EffectForce's budget is spent (everything on,
+- **A plugin of its own**, not an EffectWerk module: EffectWerk's budget is spent (everything on,
   p99 14.9 of 15), its parameter list freezes at v0.1, and a limiter has to be the last insert. On the
-  master: EffectForce first, this one after it. Named MasterForce, in a repo of its own (2026-10-24).
+  master: EffectWerk first, this one after it. Named MasterWerk, in a repo of its own (2026-10-24).
 - **The rest was handed over** ("design it for me, decide for me", 2026-10-24): the glue rule, the
   STYLE curves and Warmth below are Claude's calls, each with its reasons where it's described.
 
 ## What the Force does
 
-From the user (2026-10-24) and EffectForce's [probe](https://github.com/Devko/EffectForce/blob/main/docs/PROBE.md):
+From the user (2026-10-24) and EffectWerk's [probe](https://github.com/Devko/EffectWerk/blob/main/docs/PROBE.md):
 
 | | |
 |---|---|
@@ -73,7 +73,7 @@ IN → Tone → Glue → Gain → Warmth → Width / mono bass → Clipper (2×)
 - **WARMTH** 0–100%: saturation (below). Off by default.
 - **Two pages, two tabs.** MASTER: the top card LEARN, TARGET, STYLE, AMOUNT, LOUDNESS, WARMTH and
   LEARN's line; the bottom card TILT, LOW, AIR, GLUE, GAIN, WIDTH, MONO BASS (Off · 80 · 120 · 160 Hz)
-  and CEILING. PRESETS: EffectForce's browser. Q-Links: the first bank the knobs turned most (AMOUNT,
+  and CEILING. PRESETS: EffectWerk's browser. Q-Links: the first bank the knobs turned most (AMOUNT,
   LOUDNESS, WARMTH, TILT, LOW, AIR, GLUE, CEILING), the second GAIN, WIDTH, MONO BASS, TARGET, STYLE
   and the preset.
 - **Meters are text**, the status line's, told to MPC at most four times a second when what they show
@@ -113,7 +113,7 @@ IN → Tone → Glue → Gain → Warmth → Width / mono bass → Clipper (2×)
   the gated loudness and the true peak. The fit at the end is a few dozen operations. The results
   reach the knobs as a preset load's do (`hostAutomate` from the UI thread), never from the audio
   thread.
-- **CPU:** p99 ≤ 4% of the block, measured on the device as EffectForce's (`make bench-device`).
+- **CPU:** p99 ≤ 4% of the block, measured on the device as EffectWerk's (`make bench-device`).
 
 ### What LEARN computes
 
@@ -151,7 +151,7 @@ The prototype decides the numbers.
 ### Warmth
 
 Saturation the way an analog box on the master gives it: even harmonics, a little density, a softer
-top. One knob, **WARMTH** 0–100%, off at 0 (bit for bit). It is EffectForce's Drive, Tube: a triode's
+top. One knob, **WARMTH** 0–100%, off at 0 (bit for bit). It is EffectWerk's Drive, Tube: a triode's
 curve, even harmonics at every level (no bias needed), its gain compensation keeping the level, and a
 mix against a phase-aligned dry (no combing). WARMTH is the mix, the drive (0 to 6 dB) and a touch of
 darkness (Drive's tone to −0.1) together: up to half way a little density and a soft second harmonic
@@ -184,7 +184,7 @@ display (MPC skins can't draw one).
 2. **By ear:** a few of the user's beats, mastered by the prototype and by AIR Maximizer set by hand,
    uploaded unlisted to YouTube and listened to on a phone and a laptop. STYLE's three curves get tuned
    here.
-3. ✅ **The plugin** (2026-10-24): EffectForce's plugin layer cut down to one chain (surface.py, the
+3. ✅ **The plugin** (2026-10-24): EffectWerk's plugin layer cut down to one chain (surface.py, the
    VST2 glue, the surface's stepping and browser, state, presets, the skin and its polish, the
    installer, CI). The suite drives it through its VST2 entry points as MPC does: at rest bit for bit,
    a LEARN through MPC's transport, the knobs pushed to MPC, the project and the presets with and
@@ -222,7 +222,7 @@ display (MPC skins can't draw one).
    | Learned | 1259 | 682 | 44.5 | 2.4 |
    | Everything | 2298 | 1266 | 69.0 | 4.3 |
 
-   What is left in the driven cases is mostly EffectForce's Comp, Drive and EQ. ✅ `make bench-device`
+   What is left in the driven cases is mostly EffectWerk's Comp, Drive and EQ. ✅ `make bench-device`
    again (2026-10-26: the profile-guided build as installed, MPC running, two runs within 0.1), percent
    of the block, avg / p99 / max:
 
@@ -235,12 +235,12 @@ display (MPC skins can't draw one).
 
    The time fell about as the instructions did, a little less: the compares' stalls cost no more than
    their share. Three cases are under the 4% now; everything at once is at 4.9 (p99).
-   🔜 Played: MasterForce on Master Out 1/2, LEARN, the meters, an export; then the by-ear check of
+   🔜 Played: MasterWerk on Master Out 1/2, LEARN, the meters, an export; then the by-ear check of
    step 2 on real beats, and the STYLE curves.
 
 ## Open
 
 - STYLE's curves measured on references (step 2), against the starting values above.
 - Mono bass's default: Off (the end of the chain changes nothing below the ceiling) or 120 Hz.
-- Whether the master fader really comes after the inserts (EffectForce's Drive turned up, the master
+- Whether the master fader really comes after the inserts (EffectWerk's Drive turned up, the master
   fader moved), for the user guide's wording.

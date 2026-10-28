@@ -1,11 +1,13 @@
-# MasterForce
+# MasterWerk
 
 **The last insert on the Akai Force's master: the end of the chain while you play, and a master good
 enough for a YouTube upload after one press.**
 
+*Formerly MasterForce.* <!-- werk-rename: keep -->
+
 A VST2 insert effect for MPC OS's built-in plugin host, a sibling of
-[EffectForce](https://github.com/Devko/EffectForce), [PolyForce](https://github.com/Devko/PolyForce)
-and [SubForce](https://github.com/Devko/SubForce) on the same groundwork. Without setup it never lets
+[EffectWerk](https://github.com/Devko/EffectWerk), [PolyWerk](https://github.com/Devko/PolyWerk)
+and [SubWerk](https://github.com/Devko/SubWerk) on the same groundwork. Without setup it never lets
 the master clip and changes nothing below its ceiling. Press LEARN, play the loudest 8 bars, and it
 sets a broad tone, a little glue and the gain for a loudness target (YouTube −14 LUFS, Loud −10),
 under a true-peak limiter at −1 dBTP. A safe finisher, not a mastering engineer.
@@ -15,7 +17,7 @@ under a true-peak limiter at −1 dBTP. A safe finisher, not a mastering enginee
 > under ARM emulation; it has not been played on a Force yet. The parameter list may still change
 > before v0.1.
 
-![MasterForce's MASTER page](docs/img/master.png)
+![MasterWerk's MASTER page](docs/img/master.png)
 
 *The MASTER page, rendered offline from the skin (on the device MPC fills in the values).*
 
@@ -51,28 +53,28 @@ IN → Tone → Glue → Gain → Warmth → Width / mono bass → Clipper (2×)
 
 ## Installation
 
-Download a release package (`MasterForce-<version>-mpc-armv7.zip`) or build one with
+Download a release package (`MasterWerk-<version>-mpc-armv7.zip`) or build one with
 `make plugin-package`, unzip it and follow the `INSTALL.md` inside:
 
 ```sh
-scp -r MasterForce-<version> root@<device-ip>:/tmp/
-ssh -t root@<device-ip> sh /tmp/MasterForce-<version>/install.sh
+scp -r MasterWerk-<version> root@<device-ip>:/tmp/
+ssh -t root@<device-ip> sh /tmp/MasterWerk-<version>/install.sh
 ```
 
 The installer asks for confirmation, **stops MPC** (save your project first), copies the plugin,
-backs up and edits `MPC.settings`, and starts MPC again. Then put **MasterForce** on the master's
+backs up and edits `MPC.settings`, and starts MPC again. Then put **MasterWerk** on the master's
 last insert.
 
 ## Building
 
-Linux or WSL, as for EffectForce:
+Linux or WSL, as for EffectWerk:
 
 ```sh
 make test                  # the chain and the plugin under ASan/UBSan
 make test-arm              # the same suite built for the Force, under qemu-arm
-make arm-plugin            # build/arm/masterforce.so (profile-guided where qemu-arm runs)
+make arm-plugin            # build/arm/masterwerk.so (profile-guided where qemu-arm runs)
 make skin preview          # the skin, and every page as surface/build/page_*.png
-make plugin-package        # dist/MasterForce-<version>-mpc-armv7.zip
+make plugin-package        # dist/MasterWerk-<version>-mpc-armv7.zip
 make plugin-install        # onto the Force (FORCE=root@<ip> in local.mk); restarts MPC
 make bench-device          # CPU on the Force
 make proto                 # build/mfproto: the chain offline on a WAV (master, analyze)
@@ -85,7 +87,12 @@ the plugin catalog's `catalog_check.py`; a `vX.Y.Z` tag publishes it with its CH
 
 ## License
 
-MIT, see [LICENSE](LICENSE). `dsp/` holds EffectForce's shared pieces (simd, fastmath, the SVF, the
+MIT, see [LICENSE](LICENSE). `dsp/` holds EffectWerk's shared pieces (simd, fastmath, the SVF, the
 halfbands, EQ, Comp, Drive) as they were at its 0.0.2; `plugin/` and `surface/` are its plugin layer
 cut down to one chain; `third_party/mpc-vst-plugins/` is sd88me's skin generator and installer (MIT),
-vendored with PolyForce's patches.
+vendored with PolyWerk's patches.
+
+## Trademarks
+
+Not affiliated with or endorsed by inMusic Brands or Akai Professional. Akai Professional, Akai Force and MPC
+are trademarks of their respective owners.

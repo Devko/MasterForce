@@ -1,9 +1,9 @@
-# MasterForce: a master / end-of-chain insert effect for MPC OS (Force / MPC standalone).
+# MasterWerk: a master / end-of-chain insert effect for MPC OS (Force / MPC standalone).
 # Builds on Linux or WSL. Native: g++ (tests, the prototype, x86 bench). Device: arm-linux-gnueabihf-g++ 11
 # or newer (libstdc++ is linked dynamically: MPC OS 3.x has GCC 13's, see plugin-package). Releases come from
 # CI, built against glibc 2.31, the catalog's limit for MPC OS 2.x and 3.x; a newer distribution's cross toolchain
 # needs a newer glibc (3.x only).
-# Your own settings (FORCE, SSH_KEY, PY) go in local.mk, which git ignores. (EffectForce's, cut to one chain.)
+# Your own settings (FORCE, SSH_KEY, PY) go in local.mk, which git ignores. (EffectWerk's, cut to one chain.)
 -include local.mk
 
 CXX      ?= g++
@@ -34,7 +34,7 @@ SSH      := ssh -n $(SSH_OPTS)
 MV       := third_party/mpc-vst-plugins
 SURF     := surface
 SURF_OUT := $(SURF)/build
-SKIN_DIR := $(SURF_OUT)/skin/Devko - VST - MasterForce
+SKIN_DIR := $(SURF_OUT)/skin/Devko - VST - MasterWerk
 GEN      := $(SURF_OUT)/param_ids.h $(SURF_OUT)/factory_presets.h
 # What the skin is made from (gen_vst.py and skin_polish.py read them; the C++ reads none).
 SKIN_IN  := $(SURF)/params.json $(SURF)/layout.conf $(SURF)/vst.json $(SURF_OUT)/skin_style.json
@@ -53,7 +53,7 @@ DSP_SRC  := $(wildcard dsp/*.cpp)
 # (every stage drops NaNs with it).
 ARM_OPT  := -O3 -march=armv7-a -mtune=cortex-a17 -mfpu=neon-vfpv4 -mfloat-abi=hard \
             -funsafe-math-optimizations -fno-math-errno -fno-tree-loop-distribute-patterns
-ARM_SO   := $(BUILD)/arm/masterforce.so
+ARM_SO   := $(BUILD)/arm/masterwerk.so
 ARM_BENCH := $(BUILD)/arm/mfbench
 
 .PHONY: all surface skin preview test test-arm test-arm-pgo proto bench arm-plugin arm-bench bench-device rebuild-check \
@@ -125,10 +125,10 @@ $(BUILD)/mfproto: tools/mfproto.cpp tools/wav.h $(DSP_SRC) $(wildcard dsp/*.h) |
 	$(CXX) -std=c++17 -O2 -Wall -Wextra $(DSP_SRC) tools/mfproto.cpp -o $@
 
 # x86 numbers say nothing about the Force; this only checks the bench and the .so path work.
-bench: $(BUILD)/masterforce.so $(BUILD)/mfbench
-	$(BUILD)/mfbench $(BUILD)/masterforce.so -s 1 -c -1
+bench: $(BUILD)/masterwerk.so $(BUILD)/mfbench
+	$(BUILD)/mfbench $(BUILD)/masterwerk.so -s 1 -c -1
 
-$(BUILD)/masterforce.so: $(SRC) $(HDR) $(GEN) plugin/exports.map | $(BUILD)
+$(BUILD)/masterwerk.so: $(SRC) $(HDR) $(GEN) plugin/exports.map | $(BUILD)
 	$(CXX) -std=c++17 -O3 -fno-tree-loop-distribute-patterns -fPIC -fvisibility=hidden -fno-gnu-unique -Wall -Wextra -pthread \
 		$(INC) -shared -Wl,--no-undefined -Wl,--version-script=plugin/exports.map $(SRC) -o $@
 
@@ -140,7 +140,7 @@ $(BUILD)/mfbench: tools/bench.cpp $(HDR) $(GEN) | $(BUILD)
 # instantiations and typeinfo -fvisibility leaves; -fno-gnu-unique keeps it unloadable);
 # --no-undefined because an unresolved symbol otherwise only shows up as MPC crashing on load.
 ARM_SO_FLAGS = -std=c++17 $(ARM_OPT) -fPIC -fvisibility=hidden -fvisibility-inlines-hidden -fno-gnu-unique -Wall -Wextra -Wno-psabi -pthread $(INC)
-ARM_SO_LINK  = -shared -Wl,--no-undefined -Wl,-soname,masterforce.so -Wl,--version-script=plugin/exports.map
+ARM_SO_LINK  = -shared -Wl,--no-undefined -Wl,-soname,masterwerk.so -Wl,--version-script=plugin/exports.map
 
 ARM_SO_CMD   = $(ARM_CXX) $(ARM_SO_FLAGS) $(ARM_SO_LINK)
 
@@ -150,7 +150,7 @@ ARM_SO_CMD   = $(ARM_CXX) $(ARM_SO_FLAGS) $(ARM_SO_LINK)
 # every preset); then the .so is compiled from the same sources with the same flags plus that profile.
 # -fprofile-partial-training keeps functions the trainer never ran optimised as usual. Objects keep one
 # path (dir_name.o) in both rounds: GCC names the profile files after it. A missing profile fails the
-# build instead of quietly building without. (SubForce's.)
+# build instead of quietly building without. (SubWerk's.)
 PGO      ?= auto
 ARM_RUNS := $(if $(strip $(ARM_RUN)),$(shell command -v $(firstword $(ARM_RUN)) 2>/dev/null),native)
 PGO_ON   := $(if $(filter auto,$(PGO)),$(if $(ARM_RUNS),1,0),$(PGO))
@@ -214,13 +214,13 @@ $(ARM_BENCH): tools/bench.cpp $(HDR) $(GEN)
 BENCH_ARGS ?= -s 3
 bench-device: $(ARM_SO) $(ARM_BENCH)
 	scp -q $(SSH_OPTS) $(ARM_SO) $(ARM_BENCH) $(FORCE):/tmp/
-	$(SSH) $(FORCE) 'r=0; /tmp/mfbench /tmp/masterforce.so $(BENCH_ARGS) -c 1 || r=1; \
-		rm -f /tmp/mfbench /tmp/masterforce.so; exit $$r'
+	$(SSH) $(FORCE) 'r=0; /tmp/mfbench /tmp/masterwerk.so $(BENCH_ARGS) -c 1 || r=1; \
+		rm -f /tmp/mfbench /tmp/masterwerk.so; exit $$r'
 
 # Release zip: plugin + skin + sd88me's installer (stops MPC, backs up and edits MPC.settings,
 # restarts MPC). The plugin-list entry says Effect with 2 inputs: MPC lists it under insert effects.
 PLUGIN_VERSION ?= 0.0.1
-PKG      := MasterForce-$(PLUGIN_VERSION)
+PKG      := MasterWerk-$(PLUGIN_VERSION)
 plugin-package: $(ARM_SO) $(SKIN)
 	@# Everything shipped runs under BusyBox on the device: a CR in a script breaks it there.
 	@# grep: 1 = no CR found (good); 0 = found one; 2 = it couldn't read the scripts.
@@ -239,8 +239,8 @@ plugin-package: $(ARM_SO) $(SKIN)
 		if [ -n "$$n" ] && [ "$$(printf '%s\n%s\n' "$$n" "$${max#*_}" | sort -V | tail -1)" != "$${max#*_}" ]; then \
 		echo "error: this .so needs $${p}_$$n, newer than the Force's libstdc++ (up to $$max): it won't load"; exit 1; fi; done
 	$(PY) $(MV)/tools/release.py --so $(ARM_SO) --skin "$(SKIN_DIR)" --entry $(SURF_OUT)/pluginlist-entry.xml \
-		--version $(PLUGIN_VERSION) --repo Devko/MasterForce --license MIT \
-		--about "MasterForce master / end-of-chain (preview): a true-peak limiter at -1 dBTP that never lets the master clip, and a one-press LEARN: play the loudest 8 bars and it sets a broad tone, gentle glue and the gain for YouTube (-14 LUFS) or a louder target, with warmth, width and mono bass." \
+		--version $(PLUGIN_VERSION) --repo Devko/MasterWerk --license MIT \
+		--about "MasterWerk master / end-of-chain (preview): a true-peak limiter at -1 dBTP that never lets the master clip, and a one-press LEARN: play the loudest 8 bars and it sets a broad tone, gentle glue and the gain for YouTube (-14 LUFS) or a louder target, with warmth, width and mono bass." \
 		--requires "root SSH (MockbaMod)" \
 		--user-data Presets --user-data preset_favorites.txt --user-data preset_recent.txt \
 		-o dist

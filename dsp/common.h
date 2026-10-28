@@ -1,6 +1,6 @@
 #pragma once
 // What every module shares: MPC's rate, the control chunk, the transport, sync divisions,
-// smoothing, interpolation and a delay line. The module contract is in EffectForce's docs/DESIGN.md, "Modules":
+// smoothing, interpolation and a delay line. The module contract is in EffectWerk's docs/DESIGN.md, "Modules":
 //
 //   Module();                                       allocates (UI thread)
 //   void reset();                                   clears all state; the next set() jumps to its targets

@@ -1,11 +1,11 @@
 #pragma once
-// Where MasterForce finds its files on the device, with test overrides.
+// Where MasterWerk finds its files on the device, with test overrides.
 //
-//   pluginDir()   the folder our own .so was loaded from ("/sdcard/Synths/Devko - VST - MasterForce"),
+//   pluginDir()   the folder our own .so was loaded from ("/sdcard/Synths/Devko - VST - MasterWerk"),
 //                 read from /proc/self/maps (the mapping that holds this code). Not dladdr(): built
 //                 against glibc >= 2.34 that binds GLIBC_2.34. "" when it can't tell (tests).
 //   presetRoots() preset folders, in order: <plugin dir>/Presets ("plugin"), then the SSD
-//                 /media/AkaiForce/MasterForce Presets ("ssd"). A missing folder simply contributes
+//                 /media/AkaiForce/MasterWerk Presets ("ssd"). A missing folder simply contributes
 //                 nothing. MF_PRESET_ROOTS (colon-separated) replaces both.
 //   dataDir()     the presets' favorites and recent lists: the plugin folder. MF_DATA_DIR
 //                 overrides; "" = nothing is persisted. User presets go to the first preset root.

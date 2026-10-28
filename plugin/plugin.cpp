@@ -1,9 +1,9 @@
-// MasterForce as a VST2 insert effect for MPC OS (Force / MPC standalone).
+// MasterWerk as a VST2 insert effect for MPC OS (Force / MPC standalone).
 //
 // The master chain and LEARN (plugin/engine.h) behind the touchscreen pages generated from
 // surface/surface.py; plugin/surface.* decides what every parameter does. The status line carries
 // the meters (and the CPU meter, so the cost can be read on the device); LEARN's line says what it
-// is doing and what it set. What MPC does with an insert effect was measured first (EffectForce's
+// is doing and what it set. What MPC does with an insert effect was measured first (EffectWerk's
 // docs/PROBE.md): it calls processReplacing nonstop in place with 128 frames, suspends and resumes
 // on transport Stop (~100 ms) and for its slot's ON button (as long as it is off), and never calls
 // effSetBypass.

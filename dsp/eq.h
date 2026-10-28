@@ -1,5 +1,5 @@
 #pragma once
-// EQ (EffectForce's docs/DESIGN.md, "Modules"): low cut, low shelf, bell, high shelf, high cut, in that order,
+// EQ (EffectWerk's docs/DESIGN.md, "Modules"): low cut, low shelf, bell, high shelf, high cut, in that order,
 // each one dsp/svf.h filter with Andrew Simper's mixes ("SvfLinearTrapOptimised2"), A = 10^(dB / 40):
 //
 //   low cut     12 dB / octave Butterworth high-pass (Q 0.707): 1, -k, -1

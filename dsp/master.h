@@ -13,7 +13,7 @@
 // it found: the caller (the plugin's UI thread; the prototype) derives settings from it (dsp/learn.h)
 // and sets them as parameters. Stopping fails it. The audio thread never sets a parameter.
 //
-// Per chunk, as EffectForce's modules: set() with MPC's transport, then process() of at most kChunk
+// Per chunk, as EffectWerk's modules: set() with MPC's transport, then process() of at most kChunk
 // samples in place.
 #include "clipper.h"
 #include "comp.h"

@@ -1,9 +1,9 @@
 {
- "name": "MasterForce",
+ "name": "MasterWerk",
  "vendor": "Devko",
  "uid": "MsFc",
  "version": 1000,
- "so": "masterforce.so",
+ "so": "masterwerk.so",
  "params": "params.json",
  "layout": "layout.conf",
  "effect": true

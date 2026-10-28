@@ -1,5 +1,5 @@
 #pragma once
-// Tone: Tilt, Low and Air, broad moves only. Two EffectForce EQs (dsp/eq.h) with nothing but their
+// Tone: Tilt, Low and Air, broad moves only. Two EffectWerk EQs (dsp/eq.h) with nothing but their
 // shelves in use:
 //
 //   Tilt   a low shelf at 250 Hz by -tilt/2 and a high shelf at 4 kHz by +tilt/2: the bottom down
