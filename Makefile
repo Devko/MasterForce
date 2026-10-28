@@ -57,7 +57,7 @@ ARM_SO   := $(BUILD)/arm/masterwerk.so
 ARM_BENCH := $(BUILD)/arm/mfbench
 
 .PHONY: all surface skin preview test test-arm test-arm-pgo proto bench arm-plugin arm-bench bench-device rebuild-check \
-        plugin-package plugin-install plugin-uninstall clean
+        plugin-package test-install plugin-install plugin-uninstall clean
 # A recipe that fails leaves no half-written target behind for the next make to trust.
 .DELETE_ON_ERROR:
 all: test arm-plugin
@@ -243,7 +243,14 @@ plugin-package: $(ARM_SO) $(SKIN)
 		--about "MasterWerk master / end-of-chain (preview): a true-peak limiter at -1 dBTP that never lets the master clip, and a one-press LEARN: play the loudest 8 bars and it sets a broad tone, gentle glue and the gain for YouTube (-14 LUFS) or a louder target, with warmth, width and mono bass." \
 		--requires "root SSH (MockbaMod)" \
 		--user-data Presets --user-data preset_favorites.txt --user-data preset_recent.txt \
-		-o dist
+		--previous-name "$(strip $(PREV_NAME))" -o dist
+
+# The package's installer against scratch folders: an upgrade from the old name moves the user's files over; and
+# release.py refuses an old name that isn't one. (Used as $(strip $(PREV_NAME)): make keeps the space before a comment.)
+PREV_NAME := MasterForce # werk-rename: keep
+test-install: plugin-package
+	sh test/install_test.sh dist/MasterWerk-$(PLUGIN_VERSION)-mpc-armv7.zip "$(strip $(PREV_NAME))"
+	sh test/release_test.sh "$(PY)" $(MV)/tools/release.py $(ARM_SO) "$(SKIN_DIR)" $(SURF_OUT)/pluginlist-entry.xml
 
 # Install on a device: stops MPC, backs up + edits MPC.settings, restarts MPC. Save the MPC
 # project first. Usage: make plugin-install FORCE=root@<ip>
