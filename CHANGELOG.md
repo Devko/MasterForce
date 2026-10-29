@@ -1,16 +1,9 @@
 # Changelog
 
-## Unreleased: MasterForce is now MasterWerk <!-- werk-rename: keep -->
-
-**A new name, the same master.** "Force" is the name of Akai's device, so it no longer belongs in this
-plugin's name.
-
-- MPC's plugin list shows **MasterWerk**, and the plugin lives in `/sdcard/Synths/Devko - VST - MasterWerk`.
-- The installer carries your presets, favorites and recents out of the old `Devko - VST - MasterForce` folder and removes it. <!-- werk-rename: keep -->
-
 ## 0.0.1
 
-The first build: MasterWerk as a VST2 insert for MPC's master on the Force.
+The first release: MasterWerk as a VST2 insert for MPC's master on the Force. (Its previews were called
+MasterForce; "Force" is the name of Akai's device, so the name changed before the release.) <!-- werk-rename: keep -->
 
 - The end of the chain: a true-peak look-ahead limiter at −1 dBTP (64 samples, 1.45 ms); below its
   ceiling the master passes untouched, bit for bit.
